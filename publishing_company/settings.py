@@ -18,7 +18,8 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Controlled via environment so Vercel can run with DEBUG=False.
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1' , '.vercel.app']
 
@@ -92,22 +93,34 @@ TEMPLATES = [
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
 # Database
-# Default: SQLite for local development.
-# On Vercel/production: use DATABASE_URL (e.g. Supabase Postgres).
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
+# Priority:
+# 1. If DATABASE_URL is set, use it (Postgres/MySQL/etc.).
+# 2. Else if running on Vercel (VERCEL env var), use a writable SQLite DB in /tmp.
+# 3. Else (local dev), use SQLite in BASE_DIR.
 DATABASE_URL = os.getenv('DATABASE_URL')
+
 if DATABASE_URL:
-    DATABASES['default'] = dj_database_url.config(
-        default=DATABASE_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+elif os.getenv('VERCEL'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': '/tmp/db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Supabase Configuration (combining SQLite + Supabase)
 # Publishable: sb_publishable_QKXVNEfSSVpi_RWpIqOG9w__Bosa_pH
