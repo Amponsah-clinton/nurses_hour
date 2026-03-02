@@ -1,0 +1,1106 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Home - NurseHour{% endblock %}
+{% block extra_css %}
+<style>
+/* Hero: dark panel with curved edge into image area */
+.hero-nurse {
+  position: relative;
+  min-height: 92vh;
+  display: flex;
+  align-items: center;
+  background-color: #232637;
+  overflow: hidden;
+}
+/* Dark panel: solid block with smooth curved right edge */
+.hero-nurse__panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: #232637;
+  z-index: 1;
+  border-radius: 0 12% 12% 0 / 0 50% 50% 0;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+}
+@media (min-width: 1400px) {
+  .hero-nurse__panel { width: 48%; border-radius: 0 10% 10% 0 / 0 50% 50% 0; }
+}
+/* Rotating images: right side only */
+.hero-nurse__slides {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 55%;
+  z-index: 0;
+}
+.hero-nurse__slide {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background-repeat: no-repeat;
+  background-position: center right;
+  background-size: cover;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+.hero-nurse__slide.active {
+  opacity: 1;
+  z-index: 1;
+}
+@media (max-width: 991px) {
+  .hero-nurse {
+    min-height: 85vh;
+  }
+  .hero-nurse__panel {
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .hero-nurse__slides {
+    width: 100%;
+    left: 0;
+  }
+  .hero-nurse__slide {
+    background-position: center center;
+    background-size: cover;
+  }
+}
+/* Text column: strictly on #232637, above slides */
+.hero-nurse .container {
+  position: relative;
+  z-index: 2;
+}
+.hero-nurse .hero-content {
+  max-width: 480px;
+  padding-right: 1rem;
+}
+@media (max-width: 991px) {
+  .hero-nurse {
+    background: linear-gradient(180deg, #232637 0%, rgba(35,38,55,0.97) 50%, rgba(35,38,55,0.92) 100%);
+  }
+  .hero-nurse .hero-content {
+    max-width: 100%;
+  }
+  .hero-nurse .hero-title { font-size: clamp(1.85rem, 4.5vw, 2.75rem); }
+  .hero-nurse .hero-lead { font-size: 0.95rem; margin-bottom: 1.5rem; }
+}
+.hero-nurse .hero-badge {
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+  margin-bottom: 1rem;
+}
+.hero-nurse .hero-title {
+  font-family: "Abril Fatface", cursive;
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: #fff;
+  margin-bottom: 1.25rem;
+}
+.hero-nurse .hero-lead {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.88);
+  margin-bottom: 2rem;
+}
+.hero-nurse .hero-ctas .btn {
+  padding: 0.75rem 1.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  margin-right: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.hero-nurse .hero-ctas .btn-primary-nurse {
+  background: #fff;
+  color: #232637;
+  border: none;
+}
+.hero-nurse .hero-ctas .btn-primary-nurse:hover {
+  background: #f0f0f0;
+  color: #232637;
+}
+.hero-nurse .hero-ctas .btn-outline-nurse {
+  background: transparent;
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.6);
+}
+.hero-nurse .hero-ctas .btn-outline-nurse:hover {
+  border-color: #fff;
+  color: #fff;
+}
+.hero-nurse .hero-images {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2.5rem;
+  flex-wrap: wrap;
+}
+.hero-nurse .hero-images img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.25);
+}
+@media (max-width: 991px) {
+  .hero-nurse .hero-images { margin-top: 1.5rem; }
+  .hero-nurse .hero-images img { width: 64px; height: 64px; }
+}
+
+/* ========== Landing page revamp: three pillars, no gradients ========== */
+:root {
+  --lp-dark: #232637;
+  --lp-muted: #5a5d6e;
+  --lp-bg: #f7f7f8;
+  --lp-border: #e8e8ec;
+}
+
+/* Pillars strip – below hero */
+.lp_pillars_strip {
+  padding: 4.5rem 0;
+  background: #fff;
+  border-bottom: 1px solid var(--lp-border);
+}
+.lp_pillars_strip__item {
+  padding: 0 1.25rem;
+  text-align: center;
+}
+.lp_pillars_strip__num {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--lp-dark);
+  margin-bottom: 1rem;
+}
+.lp_pillars_strip__title {
+  font-family: "Abril Fatface", cursive;
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: var(--lp-dark);
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+}
+.lp_pillars_strip__text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--lp-muted);
+  margin: 0;
+}
+@media (max-width: 767px) {
+  .lp_pillars_strip { padding: 3rem 0; }
+  .lp_pillars_strip__item { margin-bottom: 2.5rem; padding: 0; }
+  .lp_pillars_strip__item:last-child { margin-bottom: 0; }
+}
+
+/* Our Partners – full-width sliding logo strip (no horizontal scroll) */
+.lp_partners {
+  width: 100%;
+  margin-left: 0;
+  padding: 2.5rem 0;
+  background: #f5f5f5;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.lp_partners__title {
+  font-family: "Abril Fatface", cursive;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 400;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--lp-dark);
+}
+.lp_partners__slider {
+  width: 100%;
+  max-width: none;
+  overflow: hidden;
+}
+.lp_partners__items {
+  display: flex;
+  align-items: center;
+  gap: 3.5rem;
+  padding: 0.5rem 2rem;
+  animation: lp_partners_scroll 25s linear infinite;
+  width: max-content;
+}
+@keyframes lp_partners_scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.lp_partners__items img {
+  flex-shrink: 0;
+  height: 88px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  filter: grayscale(0.4);
+  opacity: 0.85;
+  transition: filter 0.2s, opacity 0.2s;
+}
+.lp_partners__items img:hover {
+  filter: grayscale(0);
+  opacity: 1;
+}
+
+/* Stats strip (before What we offer) */
+.lp_stats {
+  padding: 3rem 0;
+  background: var(--lp-dark);
+  color: #fff;
+}
+.lp_stats__row {
+  align-items: center;
+  justify-content: center;
+}
+.lp_stats__item {
+  text-align: center;
+  padding: 1rem 0.5rem;
+}
+.lp_stats__number {
+  display: block;
+  font-family: "Abril Fatface", cursive;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.2;
+  margin-bottom: 0.35rem;
+}
+.lp_stats__label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 0.9;
+}
+@media (max-width: 767px) {
+  .lp_stats__item { margin-bottom: 1.5rem; }
+  .lp_stats__item:last-child { margin-bottom: 0; }
+}
+
+/* How we help – main three pillars */
+.lp_how_we_help {
+  padding: 5.5rem 0;
+  background: var(--lp-bg);
+}
+.lp_how_we_help__header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+.lp_how_we_help__kicker {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lp-muted);
+  margin-bottom: 0.75rem;
+}
+.lp_how_we_help__headline {
+  font-family: "Abril Fatface", cursive;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 400;
+  color: var(--lp-dark);
+  line-height: 1.2;
+  margin: 0;
+  max-width: 20em;
+  margin-left: auto;
+  margin-right: auto;
+}
+.lp_how_we_help__col {
+  margin-bottom: 2rem;
+}
+@media (min-width: 992px) {
+  .lp_how_we_help__col { margin-bottom: 0; }
+}
+.lp_how_we_help__card {
+  background: #fff;
+  border: 1px solid var(--lp-border);
+  border-radius: 2px;
+  height: 100%;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.lp_how_we_help__card:hover {
+  border-color: var(--lp-dark);
+  box-shadow: 0 8px 24px rgba(35,38,55,0.08);
+}
+.lp_how_we_help__card_inner {
+  padding: 2.25rem 1.75rem;
+}
+.lp_how_we_help__card_num {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--lp-dark);
+  margin-bottom: 1.25rem;
+  display: block;
+}
+.lp_how_we_help__card_title {
+  font-family: "Abril Fatface", cursive;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--lp-dark);
+  margin-bottom: 1rem;
+  line-height: 1.3;
+}
+.lp_how_we_help__card_text {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--lp-muted);
+  margin-bottom: 1.5rem;
+}
+.lp_how_we_help__card_link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--lp-dark);
+  text-decoration: none;
+  border-bottom: 2px solid var(--lp-dark);
+  padding-bottom: 2px;
+  display: inline-block;
+  transition: opacity 0.2s ease;
+}
+.lp_how_we_help__card:hover .lp_how_we_help__card_link { opacity: 0.85; }
+
+/* CTA band – nurses hero image from Unsplash */
+.lp_cta_band {
+  padding: 4.5rem 0;
+  background: var(--lp-dark);
+  position: relative;
+  background-image: url('https://images.unsplash.com/opengraph/1x1.png?mark=https%3A%2F%2Fimages.unsplash.com%2Fopengraph%2Flogo.png&mark-w=64&mark-align=top%2Cleft&mark-pad=50&h=630&w=1200&blend=https%3A%2F%2Fimages.unsplash.com%2Fphoto-1691139601099-932c01ec198b%3Fcrop%3Dfaces%252Cedges%26h%3D630%26w%3D1200%26blend%3D000000%26blend-mode%3Dnormal%26blend-alpha%3D10%26mark-w%3D750%26mark-align%3Dmiddle%252Ccenter%26mark%3Dhttps%253A%252F%252Fimages.unsplash.com%252Fopengraph%252Fsearch-input.png%253Fw%253D750%2526h%253D84%2526txt-pad%253D80%2526txt-align%253Dmiddle%25252Cleft%2526txt-color%253D%252523000000%2526txt-size%253D40%2526txt-width%253D660%2526txt-clip%253Dellipsis%2526auto%253Dformat%2526fit%253Dcrop%2526q%253D60%26auto%3Dformat%26fit%3Dcrop%26q%3D60%26ixid%3DM3wxMjA3fDB8MXxzZWFyY2h8NHx8bnVyc2VzfGVufDB8fHx8MTc3MjM0MDQ0NXww%26ixlib%3Drb-4.1.0&blend-w=1&auto=format&fit=crop&q=60');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.lp_cta_band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(35,38,55,0.88) 0%, rgba(35,38,55,0.75) 100%);
+  pointer-events: none;
+}
+.lp_cta_band__inner {
+  text-align: center;
+  max-width: 32em;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.lp_cta_band__title {
+  font-family: "Abril Fatface", cursive;
+  font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+  font-weight: 400;
+  color: #fff;
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.lp_cta_band__text {
+  font-size: 1.05rem;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 1.75rem;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+}
+.lp_cta_band__btn {
+  display: inline-block;
+  padding: 0.85rem 2rem;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--lp-dark);
+  background: #fff;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.lp_cta_band__btn:hover {
+  background: rgba(255,255,255,0.95);
+  color: var(--lp-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Resources (v2: image + icon cards) */
+.lp_resources {
+  padding: 4.5rem 0;
+  background: #fff;
+  border-top: 1px solid var(--lp-border);
+}
+.lp_resources__header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+.lp_resources__kicker {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lp-muted);
+  margin-bottom: 0.5rem;
+}
+.lp_resources__headline {
+  font-family: "Abril Fatface", cursive;
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--lp-dark);
+  margin: 0;
+}
+.lp_resources__grid { margin-top: 0.5rem; }
+.lp_resources__grid .col-lg-4 { margin-bottom: 1.5rem; }
+.lp_resources__card {
+  display: block;
+  height: 100%;
+  background: #fff;
+  border: 1px solid var(--lp-border);
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.25s ease, border-color 0.2s ease;
+}
+.lp_resources__card:hover {
+  border-color: rgba(35, 38, 55, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+.lp_resources__card_img {
+  height: 180px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--lp-bg);
+}
+.lp_resources__card--icon .lp_resources__card_icon {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lp-dark);
+  color: #fff;
+  font-size: 3rem;
+}
+.lp_resources__card_body {
+  padding: 1.5rem 1.35rem;
+}
+.lp_resources__card--tip .lp_resources__card_body { padding-top: 1.25rem; }
+.lp_resources__card_badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-muted);
+  margin-bottom: 0.6rem;
+}
+.lp_resources__card--tip .lp_resources__card_cta { display: none; }
+.lp_resources__card_title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--lp-dark);
+  margin-bottom: 0.5rem;
+}
+.lp_resources__card_text {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--lp-muted);
+  margin-bottom: 0.75rem;
+}
+.lp_resources__card_cta {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--lp-dark);
+  border-bottom: 2px solid var(--lp-dark);
+  padding-bottom: 2px;
+  display: inline-block;
+}
+
+/* Tips (v2: image cards) */
+.lp_tips {
+  padding: 4.5rem 0;
+  background: #fff;
+  border-top: 1px solid var(--lp-border);
+}
+.lp_tips__header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+.lp_tips__kicker {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lp-muted);
+  margin-bottom: 0.5rem;
+}
+.lp_tips__headline {
+  font-family: "Abril Fatface", cursive;
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--lp-dark);
+  margin: 0;
+}
+.lp_tips__row .col-lg-6 { margin-bottom: 1.5rem; }
+.lp_tips__card {
+  display: block;
+  height: 100%;
+  background: #fff;
+  border: 1px solid var(--lp-border);
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.25s ease, border-color 0.2s ease;
+}
+.lp_tips__card:hover {
+  border-color: rgba(35, 38, 55, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+.lp_tips__card_img {
+  height: 220px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--lp-bg);
+}
+.lp_tips__card_body { padding: 1.75rem 1.5rem; }
+.lp_tips__card_label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--lp-muted);
+  margin-bottom: 0.6rem;
+  display: block;
+}
+.lp_tips__card_title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--lp-dark);
+  margin-bottom: 0.6rem;
+  line-height: 1.35;
+}
+.lp_tips__card_text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--lp-muted);
+  margin-bottom: 1rem;
+}
+.lp_tips__card_link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--lp-dark);
+  border-bottom: 2px solid var(--lp-dark);
+  padding-bottom: 2px;
+  display: inline-block;
+}
+
+/* Testimonials – two-column slider */
+.testimonial-slider {
+  background: linear-gradient(135deg, #232637 0%, #2d3142 50%, #232637 100%);
+  padding: 3rem 0 3.5rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.testimonial-slider .col-md-4 {
+  position: relative;
+}
+.testimonial-title {
+  color: #fff;
+  position: relative;
+  padding-left: 0.25rem;
+}
+.testimonial-title .fa-quote-left {
+  font-size: 3rem;
+  opacity: 0.35;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.testimonial-title h2 {
+  font-family: "Abril Fatface", cursive;
+  font-size: 1.85rem;
+  font-weight: 400;
+  margin: 0;
+  line-height: 1.3;
+  color: #fff;
+}
+.testimonial-carousel-outer {
+  overflow: hidden;
+  position: relative;
+}
+.testimonial-carousel-inner {
+  display: flex;
+  transition: scroll-behavior 0.5s ease;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0.5rem 0;
+}
+.testimonial-carousel-inner::-webkit-scrollbar { display: none; }
+.testimonial-card-wrap {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  padding: 0 0.5rem;
+  box-sizing: border-box;
+}
+.testimonial-slider .card {
+  margin: 0;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  border: none;
+  border-radius: 12px;
+  height: 100%;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.testimonial-slider .card:hover {
+  box-shadow: 0 14px 48px rgba(0,0,0,0.2);
+  transform: translateY(-2px);
+}
+.testimonial-slider .img-wrapper {
+  height: 200px;
+  overflow: hidden;
+  background: #f1f3f5;
+}
+.testimonial-slider .img-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+.testimonial-slider .card-body {
+  padding: 1.35rem 1.25rem;
+}
+.testimonial-slider .card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #232637;
+  margin-bottom: 0.35rem;
+}
+.testimonial-slider .card-subtitle {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 0.6rem;
+}
+.testimonial-slider .card-text {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #4b5563;
+  margin: 0;
+}
+.testimonial-slider .stars {
+  color: #f59e0b;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.5rem;
+}
+@media (min-width: 576px) {
+  .testimonial-card-wrap { flex: 0 0 50%; }
+  .testimonial-carousel-inner { padding: 1em 0.5em; }
+}
+@media (min-width: 768px) {
+  .testimonial-title .fa-quote-left { font-size: 3.5rem; }
+  .testimonial-title h2 { font-size: 2rem; }
+}
+@media (min-width: 992px) {
+  .testimonial-card-wrap { flex: 0 0 33.333%; }
+  .testimonial-slider .img-wrapper { height: 220px; }
+}
+@media (max-width: 575px) {
+  .testimonial-slider .img-wrapper {
+    height: auto;
+  }
+  .testimonial-slider .img-wrapper img {
+    height: auto;
+    max-height: 260px;
+    object-fit: cover;
+    object-position: center center;
+  }
+}
+</style>
+{% endblock %}
+{% block content %}
+<!-- hero_nurse_start -->
+<section class="hero-nurse">
+  <div class="hero-nurse__slides" aria-hidden="true">
+    <div class="hero-nurse__slide active" data-slide="0" style="background-image: url('https://res.cloudinary.com/dmqizfpyz/image/upload/v1772400160/nurse3_emuojn.jpg');"></div>
+    <div class="hero-nurse__slide" data-slide="1" style="background-image: url('https://res.cloudinary.com/dmqizfpyz/image/upload/v1772400160/nurse2_iyhomf.jpg');"></div>
+    <div class="hero-nurse__slide" data-slide="2" style="background-image: url('https://res.cloudinary.com/dmqizfpyz/image/upload/v1772400159/nurse_h8zxns.jpg');"></div>
+  </div>
+  <div class="hero-nurse__panel" aria-hidden="true"></div>
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6">
+        <div class="hero-content">
+          <p class="hero-badge">Nursing Licensure Exam Preparation</p>
+          <h1 class="hero-title">Study with purpose. Pass with confidence.</h1>
+          <p class="hero-lead">Structured review, practice questions, and evidence-based study plans designed to help you prepare adequately for your nursing licensure examination and succeed on exam day.</p>
+          <div class="hero-ctas">
+            {% if user.is_authenticated %}
+            <a href="{% url 'website:dashboard' %}" class="btn btn-primary-nurse">Go to your dashboard</a>
+            {% else %}
+            <a href="{% url 'website:signup' %}" class="btn btn-primary-nurse">Create a free account</a>
+            <a href="{% url 'website:login' %}" class="btn btn-outline-nurse">Log in to dashboard</a>
+            {% endif %}
+          </div>
+          <div class="hero-images" aria-hidden="true">
+            <img src="https://res.cloudinary.com/dmqizfpyz/image/upload/v1772400159/nurse_h8zxns.jpg" alt="">
+            <img src="https://res.cloudinary.com/dmqizfpyz/image/upload/v1772400160/nurse2_iyhomf.jpg" alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- hero_nurse_end -->
+
+<section class="lp_pillars_strip">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="lp_pillars_strip__item">
+                    <span class="lp_pillars_strip__num">01</span>
+                    <h3 class="lp_pillars_strip__title">Practice questions</h3>
+                    <p class="lp_pillars_strip__text">Solve exam-style questions on the site and build the speed and accuracy you need for your licensure exams.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="lp_pillars_strip__item">
+                    <span class="lp_pillars_strip__num">02</span>
+                    <h3 class="lp_pillars_strip__title">Case studies</h3>
+                    <p class="lp_pillars_strip__text">Access case studies on the system to apply theory to real scenarios and strengthen your clinical reasoning.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="lp_pillars_strip__item">
+                    <span class="lp_pillars_strip__num">03</span>
+                    <h3 class="lp_pillars_strip__title">Lecture notes & books</h3>
+                    <p class="lp_pillars_strip__text">Find lecture notes, recommended books, and study materials in one place to support your preparation.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="lp_partners">
+    <h2 class="lp_partners__title">Our Partners</h2>
+    <div class="lp_partners__slider">
+        <div class="lp_partners__items">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/59/Coat_of_arms_of_Ghana.svg" alt="Coat of arms of Ghana">
+            <img src="https://pbs.twimg.com/profile_images/1147154023801393152/IRiKJ7vr_400x400.jpg" alt="Partner">
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/1/18/Ghana_Health_Service_%28GHS%29_logo.jpg/250px-Ghana_Health_Service_%28GHS%29_logo.jpg" alt="Ghana Health Service">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJ4izQSLqnV9DmcCO8-eTWgg3vEKw3AdRTrA&s" alt="Partner">
+            <img src="https://cdn.ghanaweb.com/imagelib/pics/101/10194728.295.jpg" alt="Partner">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/59/Coat_of_arms_of_Ghana.svg" alt="Coat of arms of Ghana">
+            <img src="https://pbs.twimg.com/profile_images/1147154023801393152/IRiKJ7vr_400x400.jpg" alt="Partner">
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/1/18/Ghana_Health_Service_%28GHS%29_logo.jpg/250px-Ghana_Health_Service_%28GHS%29_logo.jpg" alt="Ghana Health Service">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJ4izQSLqnV9DmcCO8-eTWgg3vEKw3AdRTrA&s" alt="Partner">
+            <img src="https://cdn.ghanaweb.com/imagelib/pics/101/10194728.295.jpg" alt="Partner">
+        </div>
+    </div>
+</section>
+
+<section class="lp_stats">
+    <div class="container">
+        <div class="row lp_stats__row">
+            <div class="col-md-4">
+                <div class="lp_stats__item">
+                    <span class="lp_stats__number" id="lp-stat-visits" data-target="{{ visits_display|default:100 }}">{{ visits_display|default:100 }}</span>
+                    <span class="lp_stats__label">Visits in last 24 hours</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="lp_stats__item">
+                    <span class="lp_stats__number" id="lp-stat-users" data-target="{{ users_display|default:1000 }}">{{ users_display|default:1000 }}+</span>
+                    <span class="lp_stats__label">Registered users</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="lp_stats__item">
+                    <span class="lp_stats__number" data-target="500">500+</span>
+                    <span class="lp_stats__label">Practice questions</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="lp_how_we_help">
+    <div class="container">
+        <header class="lp_how_we_help__header">
+            <p class="lp_how_we_help__kicker">What we offer</p>
+            <h2 class="lp_how_we_help__headline">Everything you need to prepare for your licensure exam</h2>
+        </header>
+        <div class="row">
+            <div class="col-lg-4 col-md-6 lp_how_we_help__col">
+                <article class="lp_how_we_help__card">
+                    <div class="lp_how_we_help__card_inner">
+                        <span class="lp_how_we_help__card_num">01</span>
+                        <h3 class="lp_how_we_help__card_title">Practice questions</h3>
+                        <p class="lp_how_we_help__card_text">Work through hundreds of exam-style questions on the site. Get instant feedback, track your progress, and identify weak areas so you can focus your study time. Built to mirror the format and difficulty of your nursing licensure exams.</p>
+                        <a href="{% url 'website:courses' %}" class="lp_how_we_help__card_link">Start practicing</a>
+                    </div>
+                </article>
+            </div>
+            <div class="col-lg-4 col-md-6 lp_how_we_help__col">
+                <article class="lp_how_we_help__card">
+                    <div class="lp_how_we_help__card_inner">
+                        <span class="lp_how_we_help__card_num">02</span>
+                        <h3 class="lp_how_we_help__card_title">Case studies</h3>
+                        <p class="lp_how_we_help__card_text">Access a library of case studies on the system. Apply theory to realistic patient scenarios, sharpen your clinical judgment, and build the reasoning skills examiners look for. New cases added regularly.</p>
+                        <a href="{% url 'website:courses' %}" class="lp_how_we_help__card_link">Browse case studies</a>
+                    </div>
+                </article>
+            </div>
+            <div class="col-lg-4 col-md-6 lp_how_we_help__col">
+                <article class="lp_how_we_help__card">
+                    <div class="lp_how_we_help__card_inner">
+                        <span class="lp_how_we_help__card_num">03</span>
+                        <h3 class="lp_how_we_help__card_title">Lecture notes & books</h3>
+                        <p class="lp_how_we_help__card_text">Find lecture notes, recommended textbooks, and study guides in one place. Organize your reading, supplement your practice, and build a solid foundation before exam day.</p>
+                        <a href="{% url 'website:courses' %}" class="lp_how_we_help__card_link">View resources</a>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="lp_cta_band">
+    <div class="container">
+        <div class="lp_cta_band__inner">
+            <h2 class="lp_cta_band__title">Practice questions, case studies, and resources in one place</h2>
+            <p class="lp_cta_band__text">Create a free account and start preparing for your nursing licensure exam today.</p>
+            <a href="{% url 'website:signup' %}" class="lp_cta_band__btn">Create account</a>
+        </div>
+    </div>
+</section>
+
+<section class="lp_resources lp_resources--v2">
+    <div class="container">
+        <header class="lp_resources__header">
+            <p class="lp_resources__kicker">Study tips & updates</p>
+            <h2 class="lp_resources__headline">Ways to study smarter</h2>
+        </header>
+        <div class="row lp_resources__grid">
+            <div class="col-lg-4 col-md-6">
+                <div class="lp_resources__card lp_resources__card--tip">
+                    <div class="lp_resources__card_img" style="background-image: url('https://res.cloudinary.com/dmqizfpyz/image/upload/v1772401629/33_y5isr3.jpg');"></div>
+                    <div class="lp_resources__card_body">
+                        <span class="lp_resources__card_badge">Tip</span>
+                        <h3 class="lp_resources__card_title">Time-block your prep</h3>
+                        <p class="lp_resources__card_text">Schedule fixed study slots and stick to them. Short, regular sessions beat last-minute cramming and help you retain more for exam day.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="lp_resources__card lp_resources__card--icon lp_resources__card--tip">
+                    <div class="lp_resources__card_icon"><i class="flaticon-school"></i></div>
+                    <div class="lp_resources__card_body">
+                        <span class="lp_resources__card_badge">Tip</span>
+                        <h3 class="lp_resources__card_title">Review every explanation</h3>
+                        <p class="lp_resources__card_text">After each practice question, read the full explanation—right or wrong. Understanding the “why” builds the judgment you need on the exam.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="lp_resources__card lp_resources__card--tip">
+                    <div class="lp_resources__card_img" style="background-image: url('https://res.cloudinary.com/dmqizfpyz/image/upload/v1772401628/44_racjao.avif');"></div>
+                    <div class="lp_resources__card_body">
+                        <span class="lp_resources__card_badge">Tip</span>
+                        <h3 class="lp_resources__card_title">Simulate exam conditions</h3>
+                        <p class="lp_resources__card_text">Do timed blocks in a quiet space, no notes. Getting used to pressure and pace now will help you stay calm when it counts.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="lp_tips lp_tips--v2">
+    <div class="container">
+        <header class="lp_tips__header">
+            <p class="lp_tips__kicker">Tips for exam prep</p>
+            <h2 class="lp_tips__headline">Stay on track</h2>
+        </header>
+        <div class="row lp_tips__row">
+            <div class="col-lg-6">
+                <a href="{% url 'website:courses' %}" class="lp_tips__card">
+                    <div class="lp_tips__card_img" style="background-image: url('https://res.cloudinary.com/dmqizfpyz/image/upload/v1772401629/33_y5isr3.jpg');"></div>
+                    <div class="lp_tips__card_body">
+                        <span class="lp_tips__card_label">Practice</span>
+                        <h3 class="lp_tips__card_title">How to use practice questions effectively</h3>
+                        <p class="lp_tips__card_text">Focus on quality over quantity. Do questions in timed blocks, review every explanation, and revisit topics where you score lower.</p>
+                        <span class="lp_tips__card_link">Explore practice questions</span>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-6">
+                <a href="{% url 'website:courses' %}" class="lp_tips__card">
+                    <div class="lp_tips__card_img" style="background-image: url('https://res.cloudinary.com/dmqizfpyz/image/upload/v1772401628/44_racjao.avif');"></div>
+                    <div class="lp_tips__card_body">
+                        <span class="lp_tips__card_label">Case studies</span>
+                        <h3 class="lp_tips__card_title">Why case studies matter for licensure</h3>
+                        <p class="lp_tips__card_text">Case studies train you to apply knowledge to real scenarios—exactly what your exam and your future practice demand.</p>
+                        <span class="lp_tips__card_link">Browse case studies</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="testimonial-slider">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-4 col-lg-3">
+                <div class="testimonial-title">
+                    <i class="fa fa-quote-left" aria-hidden="true"></i>
+                    <h2 class="fw-bold">What our learners say</h2>
+                </div>
+            </div>
+            <div class="col-md-8 col-lg-9">
+                <div class="testimonial-carousel-outer">
+                    <div class="testimonial-carousel-inner" id="testimonialCarouselInner">
+                        <div class="testimonial-card-wrap">
+                            <div class="card">
+                                <div class="img-wrapper">
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2VdQXiHykb5Yt8UTzJb9j5NkMX0pPxVSK8g&s" alt="Abena Mensah" class="d-block w-100">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">Abena Mensah</h5>
+                                    <p class="card-subtitle">Registered Nurse, Accra</p>
+                                    <div class="stars">
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                    </div>
+                                    <p class="card-text">NurseHour’s practice questions and case studies made a real difference. I felt much more confident going into my licensure exam and passed on my first attempt. Highly recommend to any nursing student in Ghana.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="testimonial-card-wrap">
+                            <div class="card">
+                                <div class="img-wrapper">
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvFBv2DDXgDMIa6YR6gvgnvGOVOGqXfQWNKw&s" alt="Akua Asante" class="d-block w-100">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">Akua Asante</h5>
+                                    <p class="card-subtitle">Final year student, Kumasi</p>
+                                    <div class="stars">
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                    </div>
+                                    <p class="card-text">The structured content and clear explanations helped me understand topics I used to struggle with. I used it alongside my lectures and saw my scores improve within weeks. Worth every minute.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="testimonial-card-wrap">
+                            <div class="card">
+                                <div class="img-wrapper">
+                                    <img src="https://source.boomplaymusic.com/buzzgroup2/M00/11/88/rBEe_F9w8-yAVN8RAAH3PRxXvTM352.jpg" alt="Afia Owusu" class="d-block w-100">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">Afia Owusu</h5>
+                                    <p class="card-subtitle">Nursing graduate, Tamale</p>
+                                    <div class="stars">
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                    </div>
+                                    <p class="card-text">I love having practice questions and case studies in one place. The platform is easy to use and the explanations are detailed. It’s now my go-to resource for exam prep. Thank you, NurseHour!</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="testimonial-card-wrap">
+                            <div class="card">
+                                <div class="img-wrapper">
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhJr4OSqUfHdlQUTkS8aXvogs4PzWiLkI7IQ&s" alt="Kwame Boateng" class="d-block w-100">
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="card-title">Kwame Boateng</h5>
+                                    <p class="card-subtitle">Registered Nurse, Takoradi</p>
+                                    <div class="stars">
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                        <i class="fa fa-star" aria-hidden="true"></i>
+                                    </div>
+                                    <p class="card-text">As a male nurse preparing for licensure, I found NurseHour very helpful. The case studies improved my clinical reasoning and the question bank covered the key areas. I passed and would recommend it to my colleagues.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+  var slides = document.querySelectorAll('.hero-nurse__slide');
+  if (slides.length < 2) return;
+  var current = 0;
+  var interval = 5500;
+  function next() {
+    slides[current].classList.remove('active');
+    current = (current + 1) % slides.length;
+    slides[current].classList.add('active');
+  }
+  setInterval(next, interval);
+})();
+
+(function() {
+  var visitsEl = document.getElementById('lp-stat-visits');
+  var usersEl = document.getElementById('lp-stat-users');
+  if (!visitsEl || !usersEl) return;
+  var url = '{% url "website:landing_stats" %}';
+  function poll() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url);
+    xhr.onload = function() {
+      if (xhr.status !== 200) return;
+      try {
+        var d = JSON.parse(xhr.responseText);
+        visitsEl.textContent = Number(d.visits_display).toLocaleString();
+        usersEl.textContent = Number(d.users_display).toLocaleString() + '+';
+      } catch (e) {}
+    };
+    xhr.send();
+  }
+  setInterval(poll, 20000);
+})();
+
+(function() {
+  var inner = document.getElementById('testimonialCarouselInner');
+  if (!inner) return;
+  var cardWraps = inner.querySelectorAll('.testimonial-card-wrap');
+  if (!cardWraps.length) return;
+  function getCardWidth() { return cardWraps[0].offsetWidth; }
+  function getScrollWidth() { return inner.scrollWidth; }
+  function getVisibleWidth() { return inner.clientWidth; }
+  function getMaxScroll() { return Math.max(0, getScrollWidth() - getVisibleWidth()); }
+  function goNext() {
+    var step = getCardWidth();
+    var maxScroll = getMaxScroll();
+    var target = inner.scrollLeft + step;
+    if (target >= maxScroll) {
+      inner.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+      inner.scrollTo({ left: target, behavior: 'smooth' });
+    }
+  }
+  setInterval(goNext, 3000);
+})();
+</script>
+{% endblock %}

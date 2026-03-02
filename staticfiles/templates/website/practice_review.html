@@ -1,0 +1,181 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Practice review{% endblock %}
+{% block page_title %}Practice review{% endblock %}
+
+{% block extra_css %}
+<style>
+.pr-summary-grid {
+  display: grid;
+  grid-template-columns: auto minmax(140px, 180px);
+  gap: 1.25rem;
+  align-items: center;
+}
+@media (max-width: 575px) {
+  .pr-summary-grid {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+}
+.pr-score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 2px solid #e5e7eb;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.pr-score-pill span {
+  display: block;
+}
+.pr-questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.pr-qcard {
+  border: 1px solid var(--db-border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+}
+.pr-qcard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+.pr-qcard-title {
+  font-size: 0.8rem;
+  color: var(--db-muted);
+}
+.pr-chip {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.pr-chip--correct {
+  background: #dcfce7;
+  color: #166534;
+}
+.pr-chip--incorrect {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.pr-qtext {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 0.6rem;
+}
+.pr-answer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+.pr-explanation {
+  font-size: 0.85rem;
+  color: #4b5563;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+}
+</style>
+{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:dashboard' %}"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db--active"><i class="fa fa-list-alt"></i> Practice questions</a>
+    <a href="{% url 'website:case_studies' %}"><i class="fa fa-folder-open"></i> Case studies</a>
+    <a href="{% url 'website:resources' %}"><i class="fa fa-book"></i> Lecture notes &amp; books</a>
+    <a href="{% url 'website:profile_support' %}"><i class="fa fa-user"></i> Profile &amp; support</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:dashboard' %}" class="db-bottom__item"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db-bottom__item db--active"><i class="fa fa-list-alt"></i> Practice</a>
+    <a href="{% url 'website:case_studies' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Cases</a>
+    <a href="{% url 'website:resources' %}" class="db-bottom__item"><i class="fa fa-book"></i> Resources</a>
+    <a href="{% url 'website:profile_support' %}" class="db-bottom__item"><i class="fa fa-user"></i> Profile</a>
+{% endblock %}
+
+{% block content %}
+    <div class="db-card">
+        <div class="pr-summary-grid">
+            <div>
+                <h2 class="db-card__title" style="margin-bottom:0.35rem;">Session summary</h2>
+                <p class="db-card__text" style="margin-bottom:0.35rem;">
+                    You answered <strong>{{ correct }}</strong> out of <strong>{{ total }}</strong> questions correctly.
+                </p>
+                <p class="db-card__text" style="margin-bottom:0;">
+                    Mode:
+                    <strong>
+                        {% if session.timed %}Timed (50 seconds per question){% else %}Untimed{% endif %}
+                    </strong>
+                </p>
+            </div>
+            <div style="text-align:right;">
+                <div class="pr-score-pill">
+                    <span>{{ percent }}%</span>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:1rem;">
+            <a style="color: white;" href="{% url 'website:practice' %}" class="db-link-btn db-link-btn--primary">Start another practice session</a>
+            <a href="{% url 'website:practice_repeat' session.id %}" class="db-link-btn db-link-btn--ghost">Practice this set again</a>
+            <a href="{% url 'website:practice_history' %}" class="db-link-btn db-link-btn--ghost">Go to practice history</a>
+        </div>
+    </div>
+
+    <div class="db-card">
+        <h2 class="db-card__title" style="margin-bottom:0.75rem;">Questions and explanations</h2>
+        {% if answers %}
+            <div style="display:flex;flex-direction:column;gap:0.85rem;">
+                {% for a in answers %}
+                <div style="border:1px solid var(--db-border);border-radius:10px;padding:0.9rem 1rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;margin-bottom:0.35rem;">
+                        <div style="font-size:0.8rem;color:var(--db-muted);">
+                            Question {{ forloop.counter }} of {{ total }}
+                        </div>
+                        <div style="font-size:0.8rem;">
+                            {% if a.is_correct %}
+                                <span style="padding:0.15rem 0.45rem;border-radius:999px;background:#dcfce7;color:#166534;font-weight:600;">Correct</span>
+                            {% else %}
+                                <span style="padding:0.15rem 0.45rem;border-radius:999px;background:#fee2e2;color:#991b1b;font-weight:600;">Not correct</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div style="font-size:0.95rem;line-height:1.6;margin-bottom:0.5rem;">
+                        {{ a.question.question_text }}
+                    </div>
+                    <div style="font-size:0.85rem;margin-bottom:0.4rem;">
+                        <strong>Your answer:</strong>
+                        <span {% if not a.is_correct %}style="color:#991b1b;"{% endif %}>
+                            {{ a.chosen_answer }}
+                        </span>
+                        &nbsp;·&nbsp;
+                        <strong>Correct answer:</strong>
+                        <span style="color:#166534;">
+                            {{ a.question.correct_answer }}
+                        </span>
+                    </div>
+                    {% if a.question.answer_explanation %}
+                    <div style="font-size:0.85rem;color:#4b5563;background:#f9fafb;border-radius:8px;padding:0.6rem 0.8rem;">
+                        <strong>Why this answer is correct:</strong><br>
+                        {{ a.question.answer_explanation }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="db-card__text">No answers recorded for this session.</p>
+        {% endif %}
+    </div>
+{% endblock %}
+

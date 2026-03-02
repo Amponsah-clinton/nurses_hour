@@ -1,0 +1,133 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Practice questions{% endblock %}
+{% block page_title %}Practice questions{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:dashboard' %}"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db--active"><i class="fa fa-list-alt"></i> Practice questions</a>
+    <a href="{% url 'website:case_studies' %}"><i class="fa fa-folder-open"></i> Case studies</a>
+    <a href="{% url 'website:resources' %}"><i class="fa fa-book"></i> Lecture notes &amp; books</a>
+    <a href="{% url 'website:profile_support' %}"><i class="fa fa-user"></i> Profile &amp; support</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:dashboard' %}" class="db-bottom__item"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db-bottom__item db--active"><i class="fa fa-list-alt"></i> Practice</a>
+    <a href="{% url 'website:case_studies' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Cases</a>
+    <a href="{% url 'website:resources' %}" class="db-bottom__item"><i class="fa fa-book"></i> Resources</a>
+    <a href="{% url 'website:profile_support' %}" class="db-bottom__item"><i class="fa fa-user"></i> Profile</a>
+{% endblock %}
+
+{% block content %}
+    <div class="db-card db-card--form">
+        <h2 class="db-card__title">Start a practice session</h2>
+        <p class="db-card__text" style="margin-bottom:1.25rem;">
+            Choose your programme, written paper, whether you want a timer (50 seconds per question), and how many questions to answer.
+        </p>
+        <form method="post" class="db-form db-form--grid" id="practiceSetupForm">
+            {% csrf_token %}
+            <div class="form-group form-group--full">
+                <label for="practiceProgram">Programme</label>
+                <select name="program" id="practiceProgram" class="form-control">
+                    {% for code,label in available_programs.items %}
+                        <option value="{{ code }}" {% if code == program %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group form-group--full">
+                <label for="practicePaper">Written paper</label>
+                <select name="paper" id="practicePaper" class="form-control">
+                    {% for prog_code, plist in available_papers.items %}
+                        {% for p in plist %}
+                            <option value="{{ p.code }}" data-program="{{ prog_code }}" {% if prog_code == program and forloop.first %}selected{% endif %}>{{ p.title }}</option>
+                        {% endfor %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="numQuestions">Number of questions</label>
+                <select name="num_questions" id="numQuestions" class="form-control">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                    <option value="40">40</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Mode</label>
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <input type="checkbox" name="timed" id="timedMode" value="1">
+                    <label for="timedMode" style="margin:0;font-size:0.9rem;cursor:pointer;">
+                        Timed – 50 seconds per question
+                    </label>
+                </div>
+            </div>
+            <div class="form-group form-group--full">
+                <button type="submit" class="btn-save">
+                    <i class="fa fa-play"></i> Start practice
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="db-card">
+        <h2 class="db-card__title">Recent practice sessions</h2>
+        {% if recent_sessions %}
+            <ul style="list-style:none;margin:0;padding:0;">
+                {% for s in recent_sessions %}
+                <li style="padding:0.65rem 0;border-bottom:1px solid var(--db-border);display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+                    <div>
+                        <div style="font-size:0.9rem;font-weight:600;">
+                            {{ s.paper|default:"Practice session" }}
+                        </div>
+                        <div style="font-size:0.8rem;color:var(--db-muted);">
+                            {{ s.started_at|date:"M j, H:i" }} · {{ s.timed|yesno:"Timed,Untimed" }}
+                        </div>
+                    </div>
+                    <div style="text-align:right;font-size:0.85rem;">
+                        {% if s.total_questions %}
+                            <div><strong>{{ s.correct_count }}/{{ s.total_questions }}</strong></div>
+                        {% else %}
+                            <div>—</div>
+                        {% endif %}
+                        <a href="{% url 'website:practice_review' s.id %}" style="font-size:0.8rem;">Review</a>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="db-card__text">You haven’t completed any practice sessions yet. Start one above.</p>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var programSelect = document.getElementById('practiceProgram');
+  var paperSelect = document.getElementById('practicePaper');
+  if (!programSelect || !paperSelect) return;
+  function syncPapers() {
+    var prog = programSelect.value;
+    var firstVisible = null;
+    Array.prototype.forEach.call(paperSelect.options, function(opt) {
+      var p = opt.getAttribute('data-program');
+      var show = !p || p === prog;
+      opt.hidden = !show;
+      if (show && !firstVisible) {
+        firstVisible = opt;
+      }
+    });
+    if (firstVisible) {
+      paperSelect.value = firstVisible.value;
+    }
+  }
+  programSelect.addEventListener('change', syncPapers);
+  syncPapers();
+})();
+</script>
+{% endblock %}
+

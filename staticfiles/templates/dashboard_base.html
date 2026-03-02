@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#232637">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>{% block title %}Dashboard{% endblock %} – NurseHour</title>
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.png' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <style>
+    :root {
+        --db-dark: #232637;
+        --db-dark-hover: #1a1c28;
+        --db-bg: #f5f5f5;
+        --db-card: #ffffff;
+        --db-border: #e5e5e5;
+        --db-text: #1c1917;
+        --db-muted: #57534e;
+        --db-sidebar-w: 260px;
+        --db-bottom-h: 64px;
+    }
+    * { box-sizing: border-box; }
+    .db-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: var(--db-bg); color: var(--db-text); min-height: 100vh; padding-bottom: var(--db-bottom-h); }
+    .db-root { display: flex; min-height: 100vh; }
+    /* Sidebar */
+    .db-sidebar { width: var(--db-sidebar-w); background: var(--db-dark); color: #fff; flex-shrink: 0; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+    .db-sidebar__logo { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .db-sidebar__logo a { color: #fff; text-decoration: none; font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; }
+    .db-sidebar__logo img { max-height: 36px; width: auto; margin-right: 0.5rem; }
+    .db-sidebar__nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
+    .db-sidebar__nav a { display: flex; align-items: center; padding: 0.75rem 1.5rem; color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.95rem; transition: background 0.15s, color 0.15s; }
+    .db-sidebar__nav a:hover, .db-sidebar__nav a.db--active { background: rgba(255,255,255,0.08); color: #fff; }
+    .db-sidebar__nav .fa { width: 22px; margin-right: 0.75rem; text-align: center; opacity: 0.9; }
+.db-sidebar__user { padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); }
+.db-sidebar__user-name { font-size: 0.85rem; color: rgba(255,255,255,0.9); margin-bottom: 0.5rem; }
+.db-sidebar__user a { color: rgba(255,255,255,0.7); font-size: 0.85rem; text-decoration: none; }
+.db-sidebar__user a:hover { color: #fff; }
+.db-sidebar__logout { display: inline-block; margin-top: 0.5rem; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; color: #fff !important; background: #dc2626; border-radius: 8px; border: none; text-decoration: none !important; transition: background 0.2s, transform 0.1s; }
+.db-sidebar__logout:hover { background: #b91c1c; color: #fff !important; transform: translateY(-1px); }
+    /* Main */
+    .db-main { flex: 1; margin-left: var(--db-sidebar-w); padding: 1.5rem; min-height: 100vh; display: flex; flex-direction: column; align-items: stretch; }
+    .db-main__title { font-size: 1.5rem; font-weight: 700; margin: 0 0 1.5rem; color: var(--db-text); }
+    .db-main__inner { width: 100%; max-width: 100%; }
+    @media (min-width: 992px) {
+        .db-main { padding: 2rem 2.5rem; align-items: center; }
+        .db-main__inner { max-width: 860px; margin: 0 auto; }
+    }
+    @media (min-width: 1200px) {
+        .db-main { padding: 2rem 3rem; }
+        .db-main__inner { max-width: 900px; }
+    }
+    /* Bottom nav (mobile) */
+    .db-bottom { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: var(--db-bottom-h); background: var(--db-card); border-top: 1px solid var(--db-border); z-index: 101; padding: 0; }
+    .db-bottom__inner { display: flex; justify-content: space-around; align-items: center; height: 100%; max-width: 480px; margin: 0 auto; }
+    .db-bottom__item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.5rem; color: var(--db-muted); text-decoration: none; font-size: 0.7rem; transition: color 0.15s; }
+    .db-bottom__item .fa { font-size: 1.25rem; margin-bottom: 0.2rem; }
+    .db-bottom__item:hover, .db-bottom__item.db--active { color: var(--db-dark); }
+    @media (max-width: 767px) {
+        .db-body { padding-bottom: calc(var(--db-bottom-h) + env(safe-area-inset-bottom, 0)); }
+        .db-sidebar { display: none; }
+        .db-main { margin-left: 0; padding: 1rem; padding-bottom: 2rem; padding-left: env(safe-area-inset-left, 1rem); padding-right: env(safe-area-inset-right, 1rem); }
+        .db-main__inner { margin: 0 auto; }
+        .db-main__title { text-align: center; font-size: 1.35rem; margin-bottom: 1.25rem; }
+        .db-bottom { display: block; padding-bottom: env(safe-area-inset-bottom, 0); }
+    }
+    @media (min-width: 768px) {
+        .db-bottom { display: none !important; }
+    }
+    /* Cards – modern elevated style */
+    .db-card { background: var(--db-card); border: 1px solid var(--db-border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: box-shadow 0.2s ease; }
+    .db-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    @media (min-width: 992px) {
+        .db-card--form { padding: 2rem 2.25rem; }
+    }
+    .db-card__title { font-size: 1.1rem; font-weight: 700; margin: 0 0 0.5rem; color: var(--db-text); letter-spacing: -0.02em; }
+    .db-card__text { font-size: 0.925rem; color: var(--db-muted); margin: 0; line-height: 1.55; }
+    .db-card code { background: var(--db-bg); padding: 0.15em 0.4em; border-radius: 6px; font-size: 0.85em; color: var(--db-dark); }
+    .db-card a:not(.btn-save):not(.db-sidebar__logout) { color: var(--db-dark); font-weight: 600; font-size: 0.9rem; text-decoration: none; }
+    .db-card a:not(.btn-save):not(.db-sidebar__logout):hover { text-decoration: underline; }
+    .table { color: var(--db-text); border-radius: 10px; overflow: hidden; }
+    .table th { border-color: var(--db-border); font-weight: 600; background: var(--db-bg); }
+    .table td { border-color: var(--db-border); }
+    /* Admin form styles – clean inputs and buttons */
+    .db-form .form-group { margin-bottom: 1.25rem; }
+    .db-form label { font-weight: 600; color: var(--db-text); margin-bottom: 0.4rem; display: block; font-size: 0.9rem; }
+    .db-form .form-control { border: 1.5px solid var(--db-border); border-radius: 10px; padding: 0.7rem 1rem; background: var(--db-card); font-size: 0.95rem; transition: border-color 0.2s, box-shadow 0.2s; }
+    .db-form .form-control:hover { border-color: #c4c4c4; }
+    .db-form .form-control:focus { border-color: var(--db-dark); outline: 0; box-shadow: 0 0 0 3px rgba(35,38,55,0.12); }
+    .db-form select.form-control { min-height: 2.75rem; height: 2.75rem; padding: 0.5rem 2rem 0.5rem 1rem; line-height: 1.5; }
+    .db-form textarea.form-control { min-height: 100px; resize: vertical; }
+    .db-form input[type="file"].form-control { padding: 0.5rem 0.85rem; font-size: 0.9rem; }
+    .db-form .btn-save { background: var(--db-dark); color: #fff; border: none; padding: 0.7rem 1.6rem; border-radius: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: background 0.2s, transform 0.1s; box-shadow: 0 2px 6px rgba(35,38,55,0.2); }
+    .db-form .btn-save:hover { background: var(--db-dark-hover); color: #fff; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(35,38,55,0.25); }
+    .db-form .btn-save:active { transform: translateY(0); }
+    .db-form .btn-save i { margin-right: 0.35rem; }
+    .db-form .invalid-feedback { font-size: 0.85rem; color: #dc2626; margin-top: 0.25rem; }
+    /* Bulk / code blocks in admin */
+    .db-code-block { background: var(--db-bg); padding: 1rem 1.25rem; border-radius: 10px; font-size: 0.8rem; overflow-x: auto; margin: 0 0 1rem 0; border: 1px solid var(--db-border); line-height: 1.5; }
+    .db-section-divider { border: 0; height: 1px; background: var(--db-border); margin: 1.75rem 0; }
+    .db-subtitle { font-size: 0.95rem; font-weight: 700; margin: 0 0 0.5rem; color: var(--db-text); }
+    .db-bulk-section { margin-bottom: 1.5rem; }
+    .db-bulk-section:last-of-type { margin-bottom: 0; }
+    .db-btn-inline { display: inline-block; text-decoration: none; margin-bottom: 1rem; }
+    .db-input-file { max-width: 100%; }
+    @media (min-width: 480px) { .db-input-file { max-width: 320px; } }
+    /* Form layout on large screens: two columns for compact fields */
+    @media (min-width: 992px) {
+        .db-form--grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem 1.75rem; align-items: start; }
+        .db-form--grid .form-group { margin-bottom: 0; }
+        .db-form--grid .form-group--full { grid-column: 1 / -1; }
+        .db-form--grid .form-group .btn-save { margin-top: 0.25rem; }
+    }
+    /* Alerts */
+    .db-body .alert { border-radius: 10px; padding: 0.9rem 1.1rem; margin-bottom: 1.25rem; border: none; font-size: 0.95rem; }
+    .db-body .alert-success { background: #ecfdf5; color: #065f46; }
+    .db-body .alert-danger { background: #fef2f2; color: #991b1b; }
+    /* Link buttons for key actions */
+    .db-link-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.55rem 1.1rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid transparent;
+    }
+    .db-link-btn--primary {
+        background: #232637;
+        color: #fff;
+        border-color: #232637;
+    }
+    .db-link-btn--primary:hover {
+        background: #1a1c28;
+        border-color: #1a1c28;
+        color: #fff;
+    }
+    .db-link-btn--ghost {
+        background: #ffffff;
+        color: #232637;
+        border-color: #d4d4d8;
+    }
+    .db-link-btn--ghost:hover {
+        background: #f4f4f5;
+        border-color: #a1a1aa;
+        color: #111827;
+    }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="db-body">
+    {% include 'includes/toast_messages.html' %}
+    <div class="db-root">
+        <aside class="db-sidebar">
+            <div class="db-sidebar__logo">
+                <a href="{% url 'website:home' %}">
+                    <img src="https://res.cloudinary.com/dmqizfpyz/image/upload/v1772398911/12_uh47pe.png" alt="">
+                    NurseHour
+                </a>
+            </div>
+            <nav class="db-sidebar__nav">
+                {% block sidebar_nav %}{% endblock %}
+            </nav>
+            <div class="db-sidebar__user">
+                <div class="db-sidebar__user-name">{{ user.get_short_name|default:user.email }}</div>
+                <a href="{% url 'website:logout' %}" class="db-sidebar__logout"><i class="fa fa-sign-out"></i> Log out</a>
+            </div>
+        </aside>
+        <main class="db-main">
+            <div class="db-main__inner">
+                <h1 class="db-main__title">{% block page_title %}Dashboard{% endblock %}</h1>
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    <nav class="db-bottom" aria-label="Bottom navigation">
+        <div class="db-bottom__inner">
+            {% block bottom_nav %}{% endblock %}
+        </div>
+    </nav>
+    <script src="{% static 'js/vendor/jquery-1.12.4.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,121 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}My Dashboard{% endblock %}
+{% block page_title %}Welcome back, {{ user.get_short_name|default:user.email }}{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:dashboard' %}" class="db--active"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}"><i class="fa fa-list-alt"></i> Practice questions</a>
+    <a href="{% url 'website:case_studies' %}"><i class="fa fa-folder-open"></i> Case studies</a>
+    <a href="{% url 'website:resources' %}"><i class="fa fa-book"></i> Lecture notes & books</a>
+    <a href="{% url 'website:profile_support' %}"><i class="fa fa-user"></i> Profile & support</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:dashboard' %}" class="db-bottom__item db--active"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db-bottom__item"><i class="fa fa-list-alt"></i> Practice</a>
+    <a href="{% url 'website:case_studies' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Cases</a>
+    <a href="{% url 'website:resources' %}" class="db-bottom__item"><i class="fa fa-book"></i> Resources</a>
+    <a href="{% url 'website:profile_support' %}" class="db-bottom__item"><i class="fa fa-user"></i> Profile</a>
+{% endblock %}
+
+{% block content %}
+    <p style="color: var(--db-muted); margin-bottom: 1.5rem;">Everything you need to prepare for your nursing licensure exam, in one place.</p>
+
+    <div class="db-card db-card--form">
+        <h2 class="db-card__title">Practice questions</h2>
+        <p class="db-card__text">
+            Choose your nursing programme and written paper to start answering exam‑style questions.
+        </p>
+        <form method="get" action="{% url 'website:practice' %}" class="db-form db-form--grid" id="practiceSelector">
+            <div class="form-group form-group--full">
+                <label for="practiceProgram">Programme</label>
+                <select name="program" id="practiceProgram" class="form-control">
+                    <option value="rgn" {% if user_program_code == 'rgn' %}selected{% endif %}>Registered General Nursing (RGN)</option>
+                    <option value="rm" {% if user_program_code == 'rm' %}selected{% endif %}>Registered Midwifery (RM)</option>
+                    <option value="rcn" {% if user_program_code == 'rcn' %}selected{% endif %}>Registered Community Nursing (RCN)</option>
+                </select>
+            </div>
+            <div class="form-group form-group--full">
+                <label for="practicePaper">Written paper</label>
+                <select name="paper" id="practicePaper" class="form-control">
+                    <option value="">-- Select paper --</option>
+                    {% for p in practice_papers %}
+                        <option value="{{ p.code }}" data-program="{{ user_program_code|default:'rgn' }}">{{ p.title }}</option>
+                    {% endfor %}
+                    <!-- Full list (used by JS when programme changes) -->
+                    <option value="rgn_med_surg" data-program="rgn">Medical–Surgical Nursing</option>
+                    <option value="rgn_community_health" data-program="rgn">Community Health Nursing</option>
+                    <option value="rgn_general" data-program="rgn">General Nursing Paper</option>
+                    <option value="rm_midwifery_obstetrics" data-program="rm">Midwifery &amp; Obstetrics</option>
+                    <option value="rm_community_based" data-program="rm">Community-Based Midwifery</option>
+                    <option value="rm_general" data-program="rm">General Midwifery Paper</option>
+                    <option value="rcn_community_phc" data-program="rcn">Community Health &amp; Primary Health Care</option>
+                    <option value="rcn_maternal_child" data-program="rcn">Maternal &amp; Child Health</option>
+                    <option value="rcn_general" data-program="rcn">General Community Nursing Paper</option>
+                </select>
+            </div>
+            <div class="form-group form-group--full">
+                <button type="submit" class="btn-save">
+                    <i class="fa fa-play"></i> Start practice
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="db-card">
+                <h2 class="db-card__title">Case studies</h2>
+                <p class="db-card__text">Apply theory to realistic patient scenarios and strengthen your clinical judgment.</p>
+                <a href="{% url 'website:case_studies' %}">Browse case studies →</a>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="db-card">
+                <h2 class="db-card__title">Lecture notes &amp; books</h2>
+                <p class="db-card__text">Find study guides and recommended materials to build a solid foundation.</p>
+                <a href="{% url 'website:resources' %}">View resources →</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="db-card">
+        <h2 class="db-card__title">Practice history</h2>
+        <p class="db-card__text">See all your past practice sessions, scores, and review the questions and explanations any time.</p>
+        <a href="{% url 'website:practice_history' %}">View practice history →</a>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var programSelect = document.getElementById('practiceProgram');
+  var paperSelect = document.getElementById('practicePaper');
+  if (!programSelect || !paperSelect) return;
+
+  function syncPapers() {
+    var prog = programSelect.value;
+    var firstVisible = null;
+    Array.prototype.forEach.call(paperSelect.options, function(opt) {
+      if (!opt.value) {
+        opt.hidden = false;
+        return;
+      }
+      var p = opt.getAttribute('data-program');
+      var show = !p || p === prog;
+      opt.hidden = !show;
+      if (show && !firstVisible) {
+        firstVisible = opt;
+      }
+    });
+    if (firstVisible) {
+      paperSelect.value = firstVisible.value;
+    }
+  }
+
+  programSelect.addEventListener('change', syncPapers);
+  syncPapers();
+})();
+</script>
+{% endblock %}

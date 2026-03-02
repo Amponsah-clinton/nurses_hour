@@ -1,0 +1,216 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Practice questions{% endblock %}
+{% block page_title %}Practice questions{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:dashboard' %}"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db--active"><i class="fa fa-list-alt"></i> Practice questions</a>
+    <a href="{% url 'website:case_studies' %}"><i class="fa fa-folder-open"></i> Case studies</a>
+    <a href="{% url 'website:resources' %}"><i class="fa fa-book"></i> Lecture notes &amp; books</a>
+    <a href="{% url 'website:profile_support' %}"><i class="fa fa-user"></i> Profile &amp; support</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:dashboard' %}" class="db-bottom__item"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db-bottom__item db--active"><i class="fa fa-list-alt"></i> Practice</a>
+    <a href="{% url 'website:case_studies' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Cases</a>
+    <a href="{% url 'website:resources' %}" class="db-bottom__item"><i class="fa fa-book"></i> Resources</a>
+    <a href="{% url 'website:profile_support' %}" class="db-bottom__item"><i class="fa fa-user"></i> Profile</a>
+{% endblock %}
+
+{% block content %}
+    <div class="db-card db-card--form">
+        <h2 class="db-card__title">
+            {% if paper_label %}{{ paper_label }}{% else %}Select a written paper{% endif %}
+            {% if program_label %}<span style="display:block;font-size:0.9rem;font-weight:400;color:var(--db-muted);margin-top:0.15rem;">{{ program_label }}</span>{% endif %}
+        </h2>
+        <p class="db-card__text">
+            Answer real exam‑style questions. Choose your programme and written paper, then select the best option for each question.
+        </p>
+
+        <form method="get" action="{% url 'website:practice' %}" class="db-form db-form--grid" id="practiceSelectorPage">
+            <div class="form-group">
+                <label for="practiceProgramPage">Programme</label>
+                <select name="program" id="practiceProgramPage" class="form-control">
+                    {% for code,label in available_programs.items %}
+                        <option value="{{ code }}" {% if code == program %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="practicePaperPage">Written paper</label>
+                <select name="paper" id="practicePaperPage" class="form-control">
+                    <option value="">-- Select paper --</option>
+                    {% for prog_code, plist in available_papers.items %}
+                        {% for p in plist %}
+                            <option value="{{ p.code }}" data-program="{{ prog_code }}" {% if p.code == paper %}selected{% endif %}>{{ p.title }}</option>
+                        {% endfor %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group form-group--full">
+                <button type="submit" class="btn-save">
+                    <i class="fa fa-refresh"></i> Load question
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="db-card">
+        {% if question %}
+            <h3 class="db-card__title">Question</h3>
+            {% if question.topic %}
+                <p class="db-card__text" style="margin-bottom:0.75rem;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--db-muted);">
+                    {{ question.topic }}
+                </p>
+            {% endif %}
+            <p style="font-size:0.98rem;line-height:1.7;margin-bottom:1rem;">{{ question.question_text }}</p>
+
+            <form id="practiceQuestionForm"
+                  data-correct="{{ question.correct_answer }}"
+                  data-explanation="{{ question.answer_explanation|default:''|escapejs }}">
+                <div class="form-group form-group--full">
+                    {% if question.option_a %}
+                    <div class="custom-control custom-radio" style="margin-bottom:0.5rem;">
+                        <input type="radio"
+                               id="optA"
+                               name="answer"
+                               value="A"
+                               class="custom-control-input">
+                        <label class="custom-control-label" for="optA">
+                            <strong>A.</strong> {{ question.option_a }}
+                        </label>
+                    </div>
+                    {% endif %}
+                    {% if question.option_b %}
+                    <div class="custom-control custom-radio" style="margin-bottom:0.5rem;">
+                        <input type="radio"
+                               id="optB"
+                               name="answer"
+                               value="B"
+                               class="custom-control-input">
+                        <label class="custom-control-label" for="optB">
+                            <strong>B.</strong> {{ question.option_b }}
+                        </label>
+                    </div>
+                    {% endif %}
+                    {% if question.option_c %}
+                    <div class="custom-control custom-radio" style="margin-bottom:0.5rem;">
+                        <input type="radio"
+                               id="optC"
+                               name="answer"
+                               value="C"
+                               class="custom-control-input">
+                        <label class="custom-control-label" for="optC">
+                            <strong>C.</strong> {{ question.option_c }}
+                        </label>
+                    </div>
+                    {% endif %}
+                    {% if question.option_d %}
+                    <div class="custom-control custom-radio" style="margin-bottom:0.5rem;">
+                        <input type="radio"
+                               id="optD"
+                               name="answer"
+                               value="D"
+                               class="custom-control-input">
+                        <label class="custom-control-label" for="optD">
+                            <strong>D.</strong> {{ question.option_d }}
+                        </label>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+
+            <div id="practiceFeedback" style="display:none;margin-top:1rem;padding:0.85rem 1rem;border-radius:10px;font-size:0.9rem;">
+                <strong id="practiceFeedbackHeading"></strong>
+                <p id="practiceFeedbackText" style="margin:0.35rem 0 0;"></p>
+            </div>
+
+            <div style="margin-top:1.25rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+                <a href="?program={{ program }}&paper={{ paper }}&next=1" class="btn-save" style="text-decoration:none;">
+                    <i class="fa fa-step-forward"></i> Next question
+                </a>
+            </div>
+        {% else %}
+            <h3 class="db-card__title">No questions yet</h3>
+            <p class="db-card__text">
+                There are no questions for this paper yet. Try choosing a different written paper or programme.
+            </p>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  function setupSelector(formId, programId, paperId) {
+    var form = document.getElementById(formId);
+    var programSelect = document.getElementById(programId);
+    var paperSelect = document.getElementById(paperId);
+    if (!form || !programSelect || !paperSelect) return;
+
+    function syncPapers() {
+      var prog = programSelect.value;
+      var firstVisible = null;
+      Array.prototype.forEach.call(paperSelect.options, function(opt) {
+        if (!opt.value) {
+          opt.hidden = false;
+          return;
+        }
+        var p = opt.getAttribute('data-program');
+        var show = !p || p === prog;
+        opt.hidden = !show;
+        if (show && !firstVisible) {
+          firstVisible = opt;
+        }
+      });
+      if (!paperSelect.value && firstVisible) {
+        paperSelect.value = firstVisible.value;
+      }
+    }
+
+    programSelect.addEventListener('change', syncPapers);
+    syncPapers();
+  }
+
+  setupSelector('practiceSelectorPage', 'practiceProgramPage', 'practicePaperPage');
+
+  var form = document.getElementById('practiceQuestionForm');
+  if (!form) return;
+  var correct = form.getAttribute('data-correct');
+  var explanation = form.getAttribute('data-explanation') || '';
+  var feedback = document.getElementById('practiceFeedback');
+  var heading = document.getElementById('practiceFeedbackHeading');
+  var text = document.getElementById('practiceFeedbackText');
+
+  function showFeedback(isCorrect) {
+    if (!feedback || !heading || !text) return;
+    feedback.style.display = 'block';
+    if (isCorrect) {
+      feedback.style.background = '#ecfdf5';
+      feedback.style.color = '#065f46';
+      heading.textContent = 'Correct';
+    } else {
+      feedback.style.background = '#fef2f2';
+      feedback.style.color = '#991b1b';
+      heading.textContent = 'Not quite';
+    }
+    if (explanation) {
+      text.textContent = explanation;
+    } else {
+      text.textContent = 'Review the options and think about why the correct answer is the best choice.';
+    }
+  }
+
+  var inputs = form.querySelectorAll('input[name="answer"]');
+  Array.prototype.forEach.call(inputs, function(input) {
+    input.addEventListener('change', function() {
+      var chosen = this.value;
+      showFeedback(chosen === correct);
+    });
+  });
+})();
+</script>
+{% endblock %}
+

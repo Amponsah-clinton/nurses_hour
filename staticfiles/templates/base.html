@@ -1,0 +1,213 @@
+{% load static %}
+<!doctype html>
+<html class="no-js" lang="zxx">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>{% block title %}NurseHour{% endblock %}</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.png' %}">
+    <!-- CSS here -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/owl.carousel.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
+    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/themify-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'css/nice-select.css' %}">
+    <link rel="stylesheet" href="{% static 'css/flaticon.css' %}">
+    <link rel="stylesheet" href="{% static 'css/gijgo.css' %}">
+    <link rel="stylesheet" href="{% static 'css/animate.css' %}">
+    <link rel="stylesheet" href="{% static 'css/slicknav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+    /* Global: prevent horizontal scroll on small screens */
+    html, body { max-width: 100%; overflow-x: hidden; }
+    /* Smaller header buttons */
+    .header-auth-btns { gap: 0.4rem; margin-left: 20px; }
+    .header-btn { display: inline-block; padding: 8px 18px; font-size: 13px; font-weight: 500; text-decoration: none; border-radius: 4px; border: 1px solid transparent; text-transform: uppercase; letter-spacing: 0.02em; transition: background 0.2s, color 0.2s, border-color 0.2s; white-space: nowrap; }
+    .header-btn .fa { margin-right: 5px; }
+    .header-btn--primary { background: #fff; color: #232637; border-color: #232637; }
+    .header-btn--primary:hover { background: #232637; color: #fff; border-color: #232637; }
+    .header-btn--login { background: #234262; color: #fff; }
+    .header-btn--login:hover { background: #fff; color: #234262; border-color: #234262; }
+    .header-btn--logout { background: #dc2626; color: #fff; }
+    .header-btn--logout:hover { background: #fff; color: #dc2626; border-color: #dc2626; }
+    .header-btn--secondary { background: #4b5563; color: #fff; }
+    .header-btn--secondary:hover { background: #fff; color: #4b5563; border-color: #4b5563; }
+    @media (min-width: 992px) and (max-width: 1200px) {
+        .header-auth-btns { margin-left: 12px; }
+        .header-btn { padding: 7px 14px; font-size: 12px; }
+    }
+    @media (max-width: 575px) {
+        .header-auth-btns { gap: 0.3rem; margin-left: 0; }
+        .header-btn { padding: 6px 12px; font-size: 11px; }
+    }
+    /* Footer developer credit – orange, distinct */
+    .footer-dev { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.15); }
+    .footer-dev a { color: #ea580c; font-weight: 700; text-decoration: none; transition: color 0.2s, text-decoration 0.2s; }
+    .footer-dev a:hover { color: #f97316; text-decoration: underline; }
+    .footer-dev .footer-dev__icon { margin-right: 0.25rem; vertical-align: middle; }
+    /* Header navbar bottom shadow */
+    .header-area .main-header-area {
+        background: #ffffff;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+    }
+    .header-area {
+        background: #ffffff;
+    }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!--[if lte IE 9]>
+    <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>
+    <![endif]-->
+
+    <!-- header-start -->
+    <header>
+        <div class="header-area ">
+            <div id="sticky-header" class="main-header-area">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="header_wrap d-flex justify-content-between align-items-center">
+                                <div class="header_left">
+                                    <div class="logo d-flex align-items-center">
+                                        <a href="{% url 'website:home' %}" class="d-flex align-items-center">
+                                            <img src="https://res.cloudinary.com/dmqizfpyz/image/upload/v1772398911/12_uh47pe.png" alt="NurseHour" style="max-height: 50px; width: auto;">
+                                            <span class="ml-2 font-weight-bold" style="font-size: 1.4rem; color: inherit;">NurseHour</span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="header_right d-flex align-items-center">
+                                    <div class="main-menu d-none d-lg-block">
+                                        <nav>
+                                            <ul id="navigation">
+                                                <li><a href="{% url 'website:home' %}">home</a></li>
+                                                <li><a href="{% url 'website:courses' %}">Courses</a></li>
+                                                <li><a href="{% url 'website:contact' %}">Contact</a></li>
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                    <div class="header-auth-btns d-flex align-items-center">
+                                        {% if user.is_authenticated %}
+                                        <a href="{% url 'website:dashboard' %}" class="header-btn header-btn--secondary">Dashboard</a>
+                                        <a href="{% url 'website:logout' %}" class="header-btn header-btn--logout"><i class="fa fa-sign-out"></i> Log out</a>
+                                        {% else %}
+                                        <a href="{% url 'website:login' %}" class="header-btn header-btn--login">Log in</a>
+                                        <a href="{% url 'website:signup' %}" class="header-btn header-btn--primary">Sign up</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="mobile_menu d-block d-lg-none"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- header-end -->
+
+    {% include 'includes/toast_messages.html' %}
+
+    {% block content %}{% endblock %}
+
+    <!-- footer start -->
+    <footer class="footer">
+        <div class="footer_top">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-3 col-md-6 col-lg-3">
+                        <div class="footer_widget">
+                            <h3 class="footer_title">Quick links</h3>
+                            <ul>
+                                <li><a href="{% url 'website:home' %}">Home</a></li>
+                                <li><a href="{% url 'website:courses' %}">Courses</a></li>
+                                <li><a href="{% url 'website:event' %}">Events</a></li>
+                                <li><a href="{% url 'website:contact' %}">Contact</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 col-lg-3">
+                        <div class="footer_widget">
+                            <h3 class="footer_title">Study</h3>
+                            <ul>
+                                <li><a href="{% url 'website:courses' %}">Practice questions</a></li>
+                                <li><a href="{% url 'website:courses' %}">Case studies</a></li>
+                                <li><a href="{% url 'website:courses' %}">Lecture notes & books</a></li>
+                                <li><a href="{% url 'website:admissions' %}">Admissions</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 col-lg-3">
+                        <div class="footer_widget">
+                            <h3 class="footer_title">Resources</h3>
+                            <ul>
+                                <li><a href="{% url 'website:event' %}">Events</a></li>
+                                <li><a href="{% url 'website:event_details' %}">Event details</a></li>
+                                <li><a href="{% url 'website:contact' %}">Contact us</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 col-lg-3">
+                        <div class="footer_widget">
+                            <h3 class="footer_title">Account</h3>
+                            <ul>
+                                <li><a href="{% url 'website:login' %}">Log in</a></li>
+                                <li><a href="{% url 'website:signup' %}">Sign up</a></li>
+                                <li><a href="{% url 'website:dashboard' %}">Dashboard</a></li>
+                                <li><a href="{% url 'website:contact' %}">Contact us</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="copy-right_text">
+            <div class="container">
+                <div class="footer_border"></div>
+                <div class="row">
+                    <div class="col-xl-12">
+                        <p class="copy_right text-center">
+                            Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | <span class="footer-dev">Developed by <a href="https://wa.me/233556105897" target="_blank" rel="noopener noreferrer" title="Contact on WhatsApp"><i class="fa fa-whatsapp footer-dev__icon" aria-hidden="true"></i>TechAge Technologies</a></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- footer end -->
+
+    <!-- JS here -->
+    <script src="{% static 'js/vendor/modernizr-3.5.0.min.js' %}"></script>
+    <script src="{% static 'js/vendor/jquery-1.12.4.min.js' %}"></script>
+    <script src="{% static 'js/popper.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'js/owl.carousel.min.js' %}"></script>
+    <script src="{% static 'js/isotope.pkgd.min.js' %}"></script>
+    <script src="{% static 'js/ajax-form.js' %}"></script>
+    <script src="{% static 'js/waypoints.min.js' %}"></script>
+    <script src="{% static 'js/jquery.counterup.min.js' %}"></script>
+    <script src="{% static 'js/imagesloaded.pkgd.min.js' %}"></script>
+    <script src="{% static 'js/scrollIt.js' %}"></script>
+    <script src="{% static 'js/jquery.scrollUp.min.js' %}"></script>
+    <script src="{% static 'js/wow.min.js' %}"></script>
+    <script src="{% static 'js/nice-select.min.js' %}"></script>
+    <script src="{% static 'js/jquery.slicknav.min.js' %}"></script>
+    <script src="{% static 'js/jquery.magnific-popup.min.js' %}"></script>
+    <script src="{% static 'js/plugins.js' %}"></script>
+    <script src="{% static 'js/gijgo.min.js' %}"></script>
+    <script src="{% static 'js/contact.js' %}"></script>
+    <script src="{% static 'js/jquery.ajaxchimp.min.js' %}"></script>
+    <script src="{% static 'js/jquery.form.js' %}"></script>
+    <script src="{% static 'js/jquery.validate.min.js' %}"></script>
+    <script src="{% static 'js/mail-script.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

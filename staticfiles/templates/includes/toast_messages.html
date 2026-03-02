@@ -1,0 +1,123 @@
+{% if messages %}
+<div id="toast-container" class="toast-container" role="region" aria-label="Notifications">
+    {% for message in messages %}
+    <div class="toast toast--{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}" data-toast role="alert">
+        <span class="toast__icon" aria-hidden="true">
+            {% if message.tags == 'success' %}<i class="fa fa-check-circle"></i>
+            {% elif message.tags == 'error' %}<i class="fa fa-exclamation-circle"></i>
+            {% else %}<i class="fa fa-info-circle"></i>{% endif %}
+        </span>
+        <p class="toast__text">{{ message }}</p>
+        <button type="button" class="toast__close" aria-label="Dismiss notification">
+            <i class="fa fa-times" aria-hidden="true"></i>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+<style>
+.toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 380px;
+    width: calc(100% - 48px);
+    pointer-events: none;
+}
+.toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12), 0 2px 10px rgba(0,0,0,0.08);
+    background: #fff;
+    border-left: 4px solid;
+    animation: toast-in 0.35s ease-out;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+.toast.toast--out {
+    animation: toast-out 0.3s ease-in forwards;
+}
+.toast__icon {
+    flex-shrink: 0;
+    font-size: 1.25rem;
+    margin-top: 1px;
+}
+.toast__text {
+    flex: 1;
+    margin: 0;
+    padding-right: 8px;
+}
+.toast__close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 4px;
+    margin: -4px -4px 0 0;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: opacity 0.2s, background 0.2s;
+}
+.toast__close:hover {
+    opacity: 1;
+    background: rgba(0,0,0,0.06);
+}
+.toast--success { border-left-color: #059669; color: #065f46; }
+.toast--success .toast__icon { color: #059669; }
+.toast--error { border-left-color: #dc2626; color: #991b1b; }
+.toast--error .toast__icon { color: #dc2626; }
+.toast--info { border-left-color: #2563eb; color: #1e40af; }
+.toast--info .toast__icon { color: #2563eb; }
+.toast--warning { border-left-color: #d97706; color: #92400e; }
+.toast--warning .toast__icon { color: #d97706; }
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+@keyframes toast-out {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+@media (max-width: 480px) {
+    .toast-container { top: 16px; right: 16px; left: 16px; width: auto; max-width: none; }
+}
+</style>
+<script>
+(function() {
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+    var toasts = container.querySelectorAll('[data-toast]');
+    var duration = 5000;
+    function dismiss(toast) {
+        if (!toast || toast.classList.contains('toast--out')) return;
+        toast.classList.add('toast--out');
+        setTimeout(function() {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+            if (container && container.children.length === 0 && container.parentNode)
+                container.parentNode.removeChild(container);
+        }, 300);
+    }
+    toasts.forEach(function(toast) {
+        var closeBtn = toast.querySelector('.toast__close');
+        if (closeBtn) closeBtn.addEventListener('click', function() { dismiss(toast); });
+        setTimeout(function() { dismiss(toast); }, duration);
+    });
+})();
+</script>
+{% endif %}
