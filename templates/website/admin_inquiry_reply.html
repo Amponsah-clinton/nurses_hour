@@ -1,0 +1,61 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Reply to inquiry – Admin{% endblock %}
+{% block page_title %}Reply to inquiry{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:admin_dashboard' %}"><i class="fa fa-tachometer"></i> Dashboard</a>
+    <a href="{% url 'website:admin_questions_list' %}"><i class="fa fa-list-alt"></i> Questions</a>
+    <a href="{% url 'website:admin_add_question' %}"><i class="fa fa-plus-circle"></i> Add question</a>
+    <a href="{% url 'website:admin_add_case_study' %}"><i class="fa fa-folder-open"></i> Add case study</a>
+    <a href="{% url 'website:admin_add_books_slides' %}"><i class="fa fa-book"></i> Add books and slides</a>
+    <a href="{% url 'website:admin_all_users' %}"><i class="fa fa-users"></i> All users</a>
+    <a href="{% url 'website:admin_payments' %}"><i class="fa fa-credit-card"></i> Payments</a>
+    <a href="{% url 'website:admin_inquiries_list' %}" class="db--active"><i class="fa fa-envelope"></i> Inquiries</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:admin_dashboard' %}" class="db-bottom__item"><i class="fa fa-tachometer"></i> Home</a>
+    <a href="{% url 'website:admin_questions_list' %}" class="db-bottom__item"><i class="fa fa-list-alt"></i> Questions</a>
+    <a href="{% url 'website:admin_add_question' %}" class="db-bottom__item"><i class="fa fa-plus-circle"></i> Add</a>
+    <a href="{% url 'website:admin_add_case_study' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Case study</a>
+    <a href="{% url 'website:admin_add_books_slides' %}" class="db-bottom__item"><i class="fa fa-book"></i> Books</a>
+    <a href="{% url 'website:admin_all_users' %}" class="db-bottom__item"><i class="fa fa-users"></i> Users</a>
+    <a href="{% url 'website:admin_payments' %}" class="db-bottom__item"><i class="fa fa-credit-card"></i> Payments</a>
+    <a href="{% url 'website:admin_inquiries_list' %}" class="db-bottom__item db--active"><i class="fa fa-envelope"></i> Inquiries</a>
+{% endblock %}
+
+{% block content %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="db-card db-card--form" style="margin-bottom: 1.5rem;">
+        <h2 class="db-card__title">Original message</h2>
+        <p class="db-card__text"><strong>From:</strong> {{ inquiry.name }} &lt;<a href="mailto:{{ inquiry.email }}">{{ inquiry.email }}</a>&gt;</p>
+        <p class="db-card__text"><strong>Subject:</strong> {{ inquiry.subject|default:"—" }}</p>
+        <p class="db-card__text"><strong>Date:</strong> {{ inquiry.created_at|date:"M j, Y H:i" }}</p>
+        <div style="margin-top: 0.75rem; padding: 1rem; background: var(--db-bg); border-radius: 10px; border: 1px solid var(--db-border);">
+            <p style="margin: 0; white-space: pre-wrap; font-size: 0.95rem;">{{ inquiry.message }}</p>
+        </div>
+        {% if inquiry.replied_at %}
+        <p class="db-card__text" style="margin-top: 0.75rem; color: #059669;">Replied on {{ inquiry.replied_at|date:"M j, Y H:i" }}.</p>
+        {% endif %}
+    </div>
+
+    <div class="db-card db-card--form">
+        <h2 class="db-card__title">Send reply by email</h2>
+        <p class="db-card__text">Your reply will be sent to <strong>{{ inquiry.email }}</strong> as an HTML email.</p>
+        <form method="post" class="db-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_reply_message">Reply message *</label>
+                <textarea name="reply_message" id="id_reply_message" class="form-control" rows="8" placeholder="Type your reply here..." required></textarea>
+            </div>
+            <button type="submit" class="btn-save"><i class="fa fa-send"></i> Send reply</button>
+            <a href="{% url 'website:admin_inquiries_list' %}" class="btn-save" style="display: inline-block; margin-left: 0.5rem; background: var(--db-muted); text-decoration: none;">Cancel</a>
+        </form>
+    </div>
+{% endblock %}

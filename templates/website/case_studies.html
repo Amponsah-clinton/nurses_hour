@@ -1,0 +1,83 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Case studies{% endblock %}
+{% block page_title %}Case studies{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:dashboard' %}"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}"><i class="fa fa-list-alt"></i> Practice questions</a>
+    <a href="{% url 'website:case_studies' %}" class="db--active"><i class="fa fa-folder-open"></i> Case studies</a>
+    <a href="{% url 'website:resources' %}"><i class="fa fa-book"></i> Lecture notes &amp; books</a>
+    <a href="{% url 'website:profile_support' %}"><i class="fa fa-user"></i> Profile &amp; support</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:dashboard' %}" class="db-bottom__item"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db-bottom__item"><i class="fa fa-list-alt"></i> Practice</a>
+    <a href="{% url 'website:case_studies' %}" class="db-bottom__item db--active"><i class="fa fa-folder-open"></i> Cases</a>
+    <a href="{% url 'website:resources' %}" class="db-bottom__item"><i class="fa fa-book"></i> Resources</a>
+    <a href="{% url 'website:profile_support' %}" class="db-bottom__item"><i class="fa fa-user"></i> Profile</a>
+{% endblock %}
+
+{% block content %}
+    <div class="db-card">
+        <h2 class="db-card__title">Your case studies</h2>
+        {% if owned_case_studies %}
+            <p class="db-card__text">These are the case studies you have unlocked. You can open the file or read the content directly.</p>
+            <ul style="list-style:none;padding-left:0;margin:0;">
+                {% for c in owned_case_studies %}
+                    <li style="padding:0.6rem 0;border-bottom:1px solid var(--db-border);">
+                        <div style="font-weight:600;margin-bottom:0.15rem;">{{ c.title }}</div>
+                        {% if c.scenario %}
+                            <div style="font-size:0.85rem;color:var(--db-muted);margin-bottom:0.25rem;">
+                                {{ c.scenario|truncatechars:140 }}
+                            </div>
+                        {% endif %}
+                        <div>
+                            {% if c.file_url %}
+                                <a href="{{ c.file_url }}" target="_blank" rel="noopener" style="margin-right:0.75rem;">Open PDF/link →</a>
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="db-card__text">You haven’t unlocked any case studies yet. Browse the catalogue below to add one to your library.</p>
+        {% endif %}
+    </div>
+
+    <div class="db-card">
+        <h2 class="db-card__title">All case studies</h2>
+        {% if all_case_studies %}
+            <div class="row">
+                {% for c in all_case_studies %}
+                <div class="col-md-6" style="margin-bottom:1rem;">
+                    <div class="db-card" style="margin-bottom:0;">
+                        <h3 class="db-card__title" style="font-size:1rem;margin-bottom:0.25rem;">{{ c.title }}</h3>
+                        {% if c.scenario %}
+                            <p class="db-card__text" style="margin-bottom:0.5rem;font-size:0.9rem;">
+                                {{ c.scenario|truncatechars:160 }}
+                            </p>
+                        {% endif %}
+                        <form method="post" action="{% url 'website:purchase_case_study' c.id %}">
+                            {% csrf_token %}
+                            {% if c.id in owned_ids %}
+                                <button type="submit" class="btn-save" disabled style="opacity:0.7;cursor:default;">
+                                    <i class="fa fa-check"></i> Already in your library
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn-save">
+                                    <i class="fa fa-unlock"></i> Add to my case studies
+                                </button>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="db-card__text">No case studies have been added yet.</p>
+        {% endif %}
+    </div>
+{% endblock %}
+

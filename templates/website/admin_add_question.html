@@ -1,0 +1,187 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Add question – Admin{% endblock %}
+{% block page_title %}Add question (MCQ){% endblock %}
+{% block extra_css %}
+<style>
+/* Make program/paper selects display nicely – selected value fully visible */
+.db-form select.form-control {
+    background-color: #ffffff;
+    color: var(--db-text);
+    min-height: 2.75rem;
+    height: 2.75rem;
+    padding: 0.5rem 2rem 0.5rem 1rem;
+    line-height: 1.5;
+}
+.db-form select.form-control option {
+    color: #111827;
+    padding: 0.25rem 0;
+}
+</style>
+{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:admin_dashboard' %}"><i class="fa fa-tachometer"></i> Dashboard</a>
+    <a href="{% url 'website:admin_questions_list' %}"><i class="fa fa-list-alt"></i> Questions</a>
+    <a href="{% url 'website:admin_add_question' %}" class="db--active"><i class="fa fa-plus-circle"></i> Add question</a>
+    <a href="{% url 'website:admin_add_case_study' %}"><i class="fa fa-folder-open"></i> Add case study</a>
+    <a href="{% url 'website:admin_add_books_slides' %}"><i class="fa fa-book"></i> Add books and slides</a>
+    <a href="{% url 'website:admin_all_users' %}"><i class="fa fa-users"></i> All users</a>
+    <a href="{% url 'website:admin_payments' %}"><i class="fa fa-credit-card"></i> Payments</a>
+    <a href="{% url 'website:admin_inquiries_list' %}"><i class="fa fa-envelope"></i> Inquiries</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:admin_dashboard' %}" class="db-bottom__item"><i class="fa fa-tachometer"></i> Home</a>
+    <a href="{% url 'website:admin_questions_list' %}" class="db-bottom__item"><i class="fa fa-list-alt"></i> Questions</a>
+    <a href="{% url 'website:admin_add_question' %}" class="db-bottom__item db--active"><i class="fa fa-plus-circle"></i> Add</a>
+    <a href="{% url 'website:admin_add_case_study' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Case study</a>
+    <a href="{% url 'website:admin_add_books_slides' %}" class="db-bottom__item"><i class="fa fa-book"></i> Books</a>
+    <a href="{% url 'website:admin_all_users' %}" class="db-bottom__item"><i class="fa fa-users"></i> Users</a>
+    <a href="{% url 'website:admin_payments' %}" class="db-bottom__item"><i class="fa fa-credit-card"></i> Payments</a>
+    <a href="{% url 'website:admin_inquiries_list' %}" class="db-bottom__item"><i class="fa fa-envelope"></i> Inquiries</a>
+{% endblock %}
+
+{% block content %}
+    <div class="db-card db-card--form db-card--single">
+        <h2 class="db-card__title">Add one question</h2>
+        <p class="db-card__text">Add a single multiple choice question. Saved directly to Supabase.</p>
+        <form method="post" class="db-form db-form--grid">
+            {% csrf_token %}
+            <input type="hidden" name="bulk_type" value="">
+            {% for field in form %}
+                <div class="form-group {% if field.name == 'question_text' or field.name == 'answer_explanation' %}form-group--full{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                    {{ field }}
+                    {% if field.errors %}<div class="invalid-feedback">{{ field.errors.0 }}</div>{% endif %}
+                </div>
+            {% endfor %}
+            <div class="form-group form-group--full">
+                <button type="submit" class="btn-save"><i class="fa fa-check"></i> Save question</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="db-card db-card--form">
+        <h2 class="db-card__title">Bulk import (JSON or CSV)</h2>
+        <p class="db-card__text">
+            Paste JSON or CSV below (or upload a CSV file). Each row becomes one question.<br>
+            <strong>Required</strong>:
+            <code>question_text</code>,
+            <code>option_a</code>,
+            <code>option_b</code>,
+            <code>correct_answer</code> (A, B, C, or D).<br>
+            <strong>Optional</strong>:
+            <code>option_c</code>,
+            <code>option_d</code>,
+            <code>answer_explanation</code>,
+            <code>topic</code>,
+            <code>program</code>,
+            <code>paper</code>.<br>
+            <strong>Program codes</strong>: <code>rgn</code> = Registered General Nursing, <code>rm</code> = Registered Midwifery, <code>rcn</code> = Registered Community Nursing.<br>
+            <strong>Paper codes</strong>:
+            <code>rgn_med_surg</code>, <code>rgn_community_health</code>, <code>rgn_general</code>,
+            <code>rm_midwifery_obstetrics</code>, <code>rm_community_based</code>, <code>rm_general</code>,
+            <code>rcn_community_phc</code>, <code>rcn_maternal_child</code>, <code>rcn_general</code>.
+        </p>
+
+        <div class="db-bulk-section">
+            <h3 class="db-subtitle">JSON format (array of objects)</h3>
+            <pre class="db-code-block">[
+  {
+    "question_text": "What is the main focus of medical asepsis?",
+    "option_a": "Destroy all microorganisms in the hospital",
+    "option_b": "Prevent the spread of organisms from one patient to another",
+    "option_c": "Prevent spread of communicable diseases in the community",
+    "option_d": "Prevent any organisms from contacting the patient",
+    "correct_answer": "B",
+    "answer_explanation": "Medical asepsis aims to limit transmission.",
+    "topic": "Infection control",
+    "program": "rgn",
+    "paper": "rgn_med_surg"
+  }
+]</pre>
+            <form method="post" class="db-form">
+                {% csrf_token %}
+                <input type="hidden" name="bulk_type" value="json">
+                <div class="form-group">
+                    <label for="bulk_json">Paste JSON</label>
+                    <textarea name="bulk_json" id="bulk_json" class="form-control" rows="8" placeholder='[ { "question_text": "...", "option_a": "...", "option_b": "...", "correct_answer": "A" } ]'>{{ bulk_json|default:"" }}</textarea>
+                </div>
+                <button type="submit" class="btn-save"><i class="fa fa-upload"></i> Import from JSON</button>
+            </form>
+        </div>
+
+        <hr class="db-section-divider" />
+
+        <div class="db-bulk-section">
+            <h3 class="db-subtitle">CSV format</h3>
+            <p class="db-card__text">First row must be the header. Download the template, fill it, then paste below or upload the file.</p>
+            <a href="{% url 'website:admin_mcq_import_template' %}" class="btn-save db-btn-inline"><i class="fa fa-download"></i> Download CSV template</a>
+            <pre class="db-code-block">question_text,option_a,option_b,option_c,option_d,correct_answer,answer_explanation,topic,program,paper
+"What is the main focus of medical asepsis?","Destroy all microorganisms","Prevent the spread of organisms from one patient to another","Prevent spread in the community","Prevent any organisms contacting the patient",B,"Medical asepsis limits transmission.","Infection control","rgn","rgn_med_surg"</pre>
+            <form method="post" enctype="multipart/form-data" class="db-form">
+                {% csrf_token %}
+                <input type="hidden" name="bulk_type" value="csv">
+                <div class="form-group">
+                    <label for="bulk_csv_text">Paste CSV (or leave empty and upload file)</label>
+                    <textarea name="bulk_csv_text" id="bulk_csv_text" class="form-control" rows="6" placeholder="question_text,option_a,option_b,option_c,option_d,correct_answer,answer_explanation,topic,program,paper&#10;Your question here,...">{{ bulk_csv_text|default:"" }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="bulk_csv_file">Or upload CSV file</label>
+                    <input type="file" name="bulk_csv_file" id="bulk_csv_file" accept=".csv,text/csv" class="form-control db-input-file">
+                </div>
+                <button type="submit" class="btn-save"><i class="fa fa-upload"></i> Import from CSV</button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+  function setupProgramPaperFilter() {
+    var programSelect = document.getElementById('id_program');
+    var paperSelect = document.getElementById('id_paper');
+    if (!programSelect || !paperSelect) return;
+
+    var options = Array.prototype.slice.call(paperSelect.options);
+
+    function filterPapers() {
+      var program = (programSelect.value || '').trim();
+      var hasVisible = false;
+      options.forEach(function(opt) {
+        if (!opt.value) {
+          opt.style.display = '';
+          return;
+        }
+        var code = String(opt.value).split('_')[0]; // rgn, rm, rcn prefix
+        if (program && code === program) {
+          opt.style.display = '';
+          hasVisible = hasVisible || (opt.value === paperSelect.value);
+        } else if (!program) {
+          opt.style.display = '';
+        } else {
+          opt.style.display = 'none';
+        }
+      });
+      if (program) {
+        // If current selection is not valid for this program, reset
+        var current = paperSelect.value;
+        if (current) {
+          var currentPrefix = String(current).split('_')[0];
+          if (currentPrefix !== program) {
+            paperSelect.value = '';
+          }
+        }
+      }
+    }
+
+    programSelect.addEventListener('change', filterPapers);
+    // Run once on load to respect existing value when editing
+    filterPapers();
+  }
+  document.addEventListener('DOMContentLoaded', setupProgramPaperFilter);
+})();
+</script>
+{% endblock %}

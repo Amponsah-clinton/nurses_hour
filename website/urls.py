@@ -1,0 +1,43 @@
+from django.urls import path
+from . import views
+
+app_name = 'website'
+
+urlpatterns = [
+    path('', views.home, name='home'),
+    path('api/landing-stats/', views.landing_stats, name='landing_stats'),
+    path('courses/', views.courses, name='courses'),
+    path('practice/', views.practice, name='practice'),
+    path('practice/session/<int:session_id>/question/<int:index>/', views.practice_session_question, name='practice_session_question'),
+    path('practice/session/<int:session_id>/review/', views.practice_review, name='practice_review'),
+    path('practice/session/<int:session_id>/repeat/', views.practice_repeat, name='practice_repeat'),
+    path('dashboard/practice-history/', views.practice_history, name='practice_history'),
+    path('dashboard/case-studies/', views.case_studies_dashboard, name='case_studies'),
+    path('dashboard/case-studies/<int:pk>/purchase/', views.purchase_case_study, name='purchase_case_study'),
+    path('dashboard/resources/', views.resources_dashboard, name='resources'),
+    path('dashboard/resources/<int:pk>/bookmark/', views.toggle_bookmark, name='toggle_bookmark'),
+    path('dashboard/profile/', views.profile_support, name='profile_support'),
+    path('event/', views.event, name='event'),
+    path('event-details/', views.event_details, name='event_details'),
+    path('admissions/', views.admissions, name='admissions'),
+    path('elements/', views.elements, name='elements'),
+    path('contact/', views.contact, name='contact'),
+    path('contact/submit/', views.contact_submit, name='contact_submit'),
+    path('signup/', views.signup, name='signup'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('admin-dashboard/questions/', views.admin_questions_list, name='admin_questions_list'),
+    path('admin-dashboard/questions/add/', views.admin_question_form, name='admin_question_add'),
+    path('admin-dashboard/questions/<int:pk>/edit/', views.admin_question_form, name='admin_question_edit'),
+    path('admin-dashboard/questions/<int:pk>/delete/', views.admin_question_delete, name='admin_question_delete'),
+    path('admin-dashboard/add-question/', views.admin_add_question, name='admin_add_question'),
+    path('admin-dashboard/questions/import-template/', views.admin_mcq_import_template, name='admin_mcq_import_template'),
+    path('admin-dashboard/add-case-study/', views.admin_add_case_study, name='admin_add_case_study'),
+    path('admin-dashboard/add-books-slides/', views.admin_add_books_slides, name='admin_add_books_slides'),
+    path('admin-dashboard/all-users/', views.admin_all_users, name='admin_all_users'),
+    path('admin-dashboard/payments/', views.admin_payments, name='admin_payments'),
+    path('admin-dashboard/inquiries/', views.admin_inquiries_list, name='admin_inquiries_list'),
+    path('admin-dashboard/inquiries/<int:pk>/reply/', views.admin_inquiry_reply, name='admin_inquiry_reply'),
+]

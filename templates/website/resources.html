@@ -1,0 +1,88 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Lecture notes &amp; books{% endblock %}
+{% block page_title %}Lecture notes &amp; books{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:dashboard' %}"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}"><i class="fa fa-list-alt"></i> Practice questions</a>
+    <a href="{% url 'website:case_studies' %}"><i class="fa fa-folder-open"></i> Case studies</a>
+    <a href="{% url 'website:resources' %}" class="db--active"><i class="fa fa-book"></i> Lecture notes &amp; books</a>
+    <a href="{% url 'website:profile_support' %}"><i class="fa fa-user"></i> Profile &amp; support</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:dashboard' %}" class="db-bottom__item"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db-bottom__item"><i class="fa fa-list-alt"></i> Practice</a>
+    <a href="{% url 'website:case_studies' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Cases</a>
+    <a href="{% url 'website:resources' %}" class="db-bottom__item db--active"><i class="fa fa-book"></i> Resources</a>
+    <a href="{% url 'website:profile_support' %}" class="db-bottom__item"><i class="fa fa-user"></i> Profile</a>
+{% endblock %}
+
+{% block content %}
+    <div class="db-card">
+        <h2 class="db-card__title">Your saved lecture notes &amp; books</h2>
+        {% if bookmarked_resources %}
+            <ul style="list-style:none;padding-left:0;margin:0;">
+                {% for r in bookmarked_resources %}
+                    <li style="padding:0.6rem 0;border-bottom:1px solid var(--db-border);">
+                        <div style="font-weight:600;margin-bottom:0.15rem;">{{ r.title }}</div>
+                        {% if r.description %}
+                            <div style="font-size:0.85rem;color:var(--db-muted);margin-bottom:0.25rem;">
+                                {{ r.description|truncatechars:140 }}
+                            </div>
+                        {% endif %}
+                        {% if r.file_url %}
+                            <a href="{{ r.file_url }}" target="_blank" rel="noopener">Open resource →</a>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="db-card__text">You haven’t saved any lecture notes or books yet. Use the bookmark buttons below to add items here.</p>
+        {% endif %}
+    </div>
+
+    <div class="db-card">
+        <h2 class="db-card__title">All lecture notes &amp; books</h2>
+        {% if all_resources %}
+            <div class="row">
+                {% for r in all_resources %}
+                <div class="col-md-6" style="margin-bottom:1rem;">
+                    <div class="db-card" style="margin-bottom:0;">
+                        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--db-muted);margin-bottom:0.3rem;">
+                            {{ r.kind|title }}
+                        </div>
+                        <h3 class="db-card__title" style="font-size:1rem;margin-bottom:0.25rem;">{{ r.title }}</h3>
+                        {% if r.description %}
+                            <p class="db-card__text" style="margin-bottom:0.5rem;font-size:0.9rem;">
+                                {{ r.description|truncatechars:160 }}
+                            </p>
+                        {% endif %}
+                        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+                            {% if r.file_url %}
+                                <a href="{{ r.file_url }}" target="_blank" rel="noopener" style="font-size:0.9rem;">Open →</a>
+                            {% endif %}
+                            <form method="post" action="{% url 'website:toggle_bookmark' r.id %}">
+                                {% csrf_token %}
+                                {% if r.id in bookmarked_ids %}
+                                    <button type="submit" class="btn-save" style="background:#e5e7eb;color:#111827;">
+                                        <i class="fa fa-bookmark"></i> Saved
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn-save">
+                                        <i class="fa fa-bookmark-o"></i> Save
+                                    </button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="db-card__text">No lecture notes or books have been added yet.</p>
+        {% endif %}
+    </div>
+{% endblock %}
+

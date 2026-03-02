@@ -1,0 +1,10 @@
+"""
+Vercel serverless entry: expose Django WSGI as `app` so all routes hit Django.
+"""
+import os
+
+from django.core.wsgi import get_wsgi_application
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'publishing_company.settings')
+
+app = get_wsgi_application()

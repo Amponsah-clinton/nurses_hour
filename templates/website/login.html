@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Log in – NurseHour{% endblock %}
+{% block extra_css %}
+<style>
+/* Auth theme: #232637 */
+:root {
+  --auth-accent: #232637;
+  --auth-accent-hover: #1a1c28;
+  --auth-accent-soft: rgba(35, 38, 55, 0.12);
+  --auth-bg: #fafaf9;
+  --auth-card: #ffffff;
+  --auth-text: #1c1917;
+  --auth-text-muted: #57534e;
+  --auth-border: #e7e5e4;
+}
+.auth-page { min-height: calc(100vh - 120px); display: flex; align-items: center; justify-content: center; padding: 3rem 0; background: var(--auth-bg); }
+.auth-card { background: var(--auth-card); border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04); overflow: hidden; max-width: 420px; width: 100%; border: 1px solid var(--auth-border); }
+.auth-card__header { background: var(--auth-accent); color: #fff; padding: 1.75rem 2rem; text-align: center; }
+.auth-card__header h1 { font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+.auth-card__header p { margin: 0.4rem 0 0; opacity: .95; font-size: 0.95rem; }
+.auth-card__body { padding: 2rem 1.75rem; }
+.auth-form .form-group { margin-bottom: 1.25rem; }
+.auth-form label { font-weight: 600; color: var(--auth-text); margin-bottom: 0.4rem; font-size: 0.9rem; display: block; }
+.auth-form .form-control { border: 1px solid var(--auth-border); border-radius: 12px; padding: 0.75rem 1rem; font-size: 1rem; transition: border-color .2s, box-shadow .2s; background: #fff; }
+.auth-form .form-control:focus { border-color: var(--auth-accent); box-shadow: 0 0 0 3px var(--auth-accent-soft); outline: 0; }
+.auth-form .form-control.is-invalid { border-color: #dc3545; }
+.auth-form .invalid-feedback { font-size: 0.85rem; }
+.auth-form .required-asterisk { color: #dc3545; margin-left: 2px; }
+.auth-form .password-wrap { position: relative; }
+.auth-form .password-wrap .form-control { padding-right: 2.75rem; }
+.auth-form .password-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--auth-text-muted); cursor: pointer; padding: 0.25rem; font-size: 1.1rem; }
+.auth-form .password-toggle:hover { color: var(--auth-accent); }
+.auth-form .password-toggle .fa-eye-slash { display: none; }
+.auth-form .password-wrap.is-visible .fa-eye { display: none; }
+.auth-form .password-wrap.is-visible .fa-eye-slash { display: inline-block; }
+.auth-form .btn-primary { width: 100%; padding: 0.85rem 1.5rem; font-weight: 600; font-size: 1rem; border-radius: 12px; border: none; background: var(--auth-accent); color: #fff; transition: background .2s, transform .15s, box-shadow .2s; }
+.auth-form .btn-primary:hover { background: var(--auth-accent-hover); color: #fff; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(35, 38, 55, .25); }
+.auth-card__footer { padding: 0 1.75rem 1.75rem; text-align: center; }
+.auth-card__footer a { color: var(--auth-accent); font-weight: 500; text-decoration: none; }
+.auth-card__footer a:hover { text-decoration: underline; color: var(--auth-accent-hover); }
+.alert { border-radius: 12px; }
+@media (max-width: 576px) {
+  .auth-card__header, .auth-card__body { padding-left: 1.25rem; padding-right: 1.25rem; }
+  .auth-page { padding: 1.5rem 0; min-height: calc(100vh - 120px); }
+}
+</style>
+{% endblock %}
+{% block content %}
+<section class="auth-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="auth-card mx-auto">
+                    <div class="auth-card__header">
+                        <h1 style="color: #ededed;">Welcome back</h1>
+                        <p style="color: #ededed;">Log in with your email or phone number</p>
+                    </div>
+                    <div class="auth-card__body">
+                        <form method="post" action="{% url 'website:login' %}" class="auth-form" novalidate>
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="id_email_or_phone">{{ form.email_or_phone.label }}<span class="required-asterisk" aria-hidden="true">*</span></label>
+                                <input type="text" name="email_or_phone" id="id_email_or_phone" value="{{ form.email_or_phone.value|default:'' }}"
+                                       class="form-control {% if form.email_or_phone.errors %}is-invalid{% endif %}"
+                                       placeholder="Email or 10-digit phone number" required autocomplete="username">
+                                {% if form.email_or_phone.errors %}<div class="invalid-feedback">{{ form.email_or_phone.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_password">Password<span class="required-asterisk" aria-hidden="true">*</span></label>
+                                <div class="password-wrap" id="login-password-wrap">
+                                    <input type="password" name="password" id="id_password"
+                                           class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                                           placeholder="••••••••" required autocomplete="current-password">
+                                    <button type="button" class="password-toggle" id="login-password-toggle" aria-label="Show password">
+                                        <i class="fa fa-eye" aria-hidden="true"></i>
+                                        <i class="fa fa-eye-slash" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                {% if form.password.errors %}<div class="invalid-feedback">{{ form.password.errors.0 }}</div>{% endif %}
+                            </div>
+                            {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">Log in</button>
+                        </form>
+                    </div>
+                    <div class="auth-card__footer">
+                        Don’t have an account? <a href="{% url 'website:signup' %}">Sign up</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+  var wrap = document.getElementById('login-password-wrap');
+  var input = document.getElementById('id_password');
+  var btn = document.getElementById('login-password-toggle');
+  if (!wrap || !input || !btn) return;
+  btn.addEventListener('click', function() {
+    if (input.type === 'password') {
+      input.type = 'text';
+      wrap.classList.add('is-visible');
+      btn.setAttribute('aria-label', 'Hide password');
+    } else {
+      input.type = 'password';
+      wrap.classList.remove('is-visible');
+      btn.setAttribute('aria-label', 'Show password');
+    }
+  });
+})();
+</script>
+{% endblock %}

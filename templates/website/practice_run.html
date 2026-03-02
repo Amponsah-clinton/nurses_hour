@@ -1,0 +1,126 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Practice – Question {{ index }}{% endblock %}
+{% block page_title %}Practice – Question {{ index }} of {{ total }}{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:dashboard' %}"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db--active"><i class="fa fa-list-alt"></i> Practice questions</a>
+    <a href="{% url 'website:case_studies' %}"><i class="fa fa-folder-open"></i> Case studies</a>
+    <a href="{% url 'website:resources' %}"><i class="fa fa-book"></i> Lecture notes &amp; books</a>
+    <a href="{% url 'website:profile_support' %}"><i class="fa fa-user"></i> Profile &amp; support</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:dashboard' %}" class="db-bottom__item"><i class="fa fa-home"></i> Home</a>
+    <a href="{% url 'website:practice' %}" class="db-bottom__item db--active"><i class="fa fa-list-alt"></i> Practice</a>
+    <a href="{% url 'website:case_studies' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Cases</a>
+    <a href="{% url 'website:resources' %}" class="db-bottom__item"><i class="fa fa-book"></i> Resources</a>
+    <a href="{% url 'website:profile_support' %}" class="db-bottom__item"><i class="fa fa-user"></i> Profile</a>
+{% endblock %}
+
+{% block content %}
+    <div class="db-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;">
+            <div style="flex:1;">
+                <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--db-muted);margin-bottom:0.25rem;">
+                    Question {{ index }} of {{ total }}
+                </div>
+                <div style="width:100%;height:6px;border-radius:999px;background:#e5e7eb;overflow:hidden;">
+                    <div style="width:{{ progress_pct }}%;height:100%;background:#4f46e5;"></div>
+                </div>
+            </div>
+            {% if timed %}
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.35rem;min-width:110px;">
+                <div id="timerBadge" style="min-width:90px;text-align:center;background:#0f172a;color:#f9fafb;border-radius:999px;padding:0.35rem 0.85rem;font-size:0.85rem;font-weight:600;">
+                    <span id="timerSeconds">{{ seconds_per_question }}</span>s
+                </div>
+                <div style="width:100%;height:4px;border-radius:999px;background:#e5e7eb;overflow:hidden;">
+                    <div id="timerBarFill" style="width:100%;height:100%;background:#22c55e;transform-origin:left center;"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <h3 class="db-card__title" style="margin-bottom:0.75rem;">Question</h3>
+        <p style="font-size:0.98rem;line-height:1.7;margin-bottom:1rem;">{{ question.question_text }}</p>
+
+        <form method="post" id="practiceRunForm">
+            {% csrf_token %}
+            <div class="form-group form-group--full">
+                {% if question.option_a %}
+                <div class="custom-control custom-radio" style="margin-bottom:0.6rem;">
+                    <input type="radio" id="optA" name="answer" value="A" class="custom-control-input">
+                    <label class="custom-control-label" for="optA"><strong>A.</strong> {{ question.option_a }}</label>
+                </div>
+                {% endif %}
+                {% if question.option_b %}
+                <div class="custom-control custom-radio" style="margin-bottom:0.6rem;">
+                    <input type="radio" id="optB" name="answer" value="B" class="custom-control-input">
+                    <label class="custom-control-label" for="optB"><strong>B.</strong> {{ question.option_b }}</label>
+                </div>
+                {% endif %}
+                {% if question.option_c %}
+                <div class="custom-control custom-radio" style="margin-bottom:0.6rem;">
+                    <input type="radio" id="optC" name="answer" value="C" class="custom-control-input">
+                    <label class="custom-control-label" for="optC"><strong>C.</strong> {{ question.option_c }}</label>
+                </div>
+                {% endif %}
+                {% if question.option_d %}
+                <div class="custom-control custom-radio" style="margin-bottom:0.6rem;">
+                    <input type="radio" id="optD" name="answer" value="D" class="custom-control-input">
+                    <label class="custom-control-label" for="optD"><strong>D.</strong> {{ question.option_d }}</label>
+                </div>
+                {% endif %}
+            </div>
+            <div style="margin-top:1.25rem;display:flex;justify-content:flex-end;">
+                <button type="submit" class="btn-save">
+                    {% if index < total %}<i class="fa fa-arrow-right"></i> Next{% else %}<i class="fa fa-flag-checkered"></i> Finish{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if timed %}
+<script>
+(function() {
+  var totalSeconds = {{ seconds_per_question }};
+  var remaining = totalSeconds;
+  var el = document.getElementById('timerSeconds');
+  var badge = document.getElementById('timerBadge');
+  var bar = document.getElementById('timerBarFill');
+  var form = document.getElementById('practiceRunForm');
+  if (!el || !badge || !form || !bar) return;
+  function tick() {
+    remaining -= 1;
+    if (remaining <= 0) {
+      el.textContent = '0';
+      badge.style.background = '#b91c1c';
+      bar.style.background = '#b91c1c';
+      try { form.submit(); } catch (e) {}
+      return;
+    }
+    el.textContent = remaining;
+    var ratio = remaining / totalSeconds;
+    if (ratio < 0) { ratio = 0; }
+    if (ratio > 1) { ratio = 1; }
+    bar.style.transform = 'scaleX(' + ratio.toFixed(3) + ')';
+    if (remaining <= 10) {
+      badge.style.background = '#f97316';
+      bar.style.background = '#f97316';
+    } else {
+      badge.style.background = '#0f172a';
+      bar.style.background = '#22c55e';
+    }
+    window.setTimeout(tick, 1000);
+  }
+  // initial state
+  bar.style.transform = 'scaleX(1)';
+  window.setTimeout(tick, 1000);
+})();
+</script>
+{% endif %}
+{% endblock %}
+

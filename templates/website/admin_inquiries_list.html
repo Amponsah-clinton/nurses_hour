@@ -1,0 +1,78 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Inquiries – Admin{% endblock %}
+{% block page_title %}Inquiries{% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:admin_dashboard' %}"><i class="fa fa-tachometer"></i> Dashboard</a>
+    <a href="{% url 'website:admin_questions_list' %}"><i class="fa fa-list-alt"></i> Questions</a>
+    <a href="{% url 'website:admin_add_question' %}"><i class="fa fa-plus-circle"></i> Add question</a>
+    <a href="{% url 'website:admin_add_case_study' %}"><i class="fa fa-folder-open"></i> Add case study</a>
+    <a href="{% url 'website:admin_add_books_slides' %}"><i class="fa fa-book"></i> Add books and slides</a>
+    <a href="{% url 'website:admin_all_users' %}"><i class="fa fa-users"></i> All users</a>
+    <a href="{% url 'website:admin_payments' %}"><i class="fa fa-credit-card"></i> Payments</a>
+    <a href="{% url 'website:admin_inquiries_list' %}" class="db--active"><i class="fa fa-envelope"></i> Inquiries</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:admin_dashboard' %}" class="db-bottom__item"><i class="fa fa-tachometer"></i> Home</a>
+    <a href="{% url 'website:admin_questions_list' %}" class="db-bottom__item"><i class="fa fa-list-alt"></i> Questions</a>
+    <a href="{% url 'website:admin_add_question' %}" class="db-bottom__item"><i class="fa fa-plus-circle"></i> Add</a>
+    <a href="{% url 'website:admin_add_case_study' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Case study</a>
+    <a href="{% url 'website:admin_add_books_slides' %}" class="db-bottom__item"><i class="fa fa-book"></i> Books</a>
+    <a href="{% url 'website:admin_all_users' %}" class="db-bottom__item"><i class="fa fa-users"></i> Users</a>
+    <a href="{% url 'website:admin_payments' %}" class="db-bottom__item"><i class="fa fa-credit-card"></i> Payments</a>
+    <a href="{% url 'website:admin_inquiries_list' %}" class="db-bottom__item db--active"><i class="fa fa-envelope"></i> Inquiries</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.inq-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--db-border); }
+.inq-table { width: 100%; margin: 0; border-collapse: collapse; }
+.inq-table th { text-align: left; padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 600; color: var(--db-muted); background: var(--db-bg); border-bottom: 1px solid var(--db-border); }
+.inq-table td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--db-border); font-size: 0.9rem; }
+.inq-table tbody tr:hover { background: rgba(0,0,0,0.02); }
+.inq-table .inq-msg { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inq-table .inq-replied { color: #059669; font-size: 0.85rem; }
+.inq-table .btn-reply { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; font-size: 0.85rem; font-weight: 600; border-radius: 8px; background: var(--db-dark); color: #fff; text-decoration: none; }
+.inq-table .btn-reply:hover { color: #fff; background: var(--db-dark-hover); }
+.inq-empty { color: var(--db-muted); padding: 2rem; text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="db-card">
+        <h2 class="db-card__title">Contact form submissions</h2>
+        <p class="db-card__text">Inquiries from the contact page. Reply via email to respond to the sender.</p>
+        <div class="inq-table-wrap" style="margin-top: 1rem;">
+            <table class="inq-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Subject</th>
+                        <th>Message</th>
+                        <th>Date</th>
+                        <th>Replied</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in inquiries %}
+                    <tr>
+                        <td>{{ i.name }}</td>
+                        <td><a href="mailto:{{ i.email }}">{{ i.email }}</a></td>
+                        <td>{{ i.subject|default:"—" }}</td>
+                        <td class="inq-msg" title="{{ i.message }}">{{ i.message }}</td>
+                        <td>{{ i.created_at|date:"M j, Y H:i" }}</td>
+                        <td class="inq-replied">{% if i.replied_at %}Yes · {{ i.replied_at|date:"M j" }}{% else %}—{% endif %}</td>
+                        <td><a href="{% url 'website:admin_inquiry_reply' i.pk %}" class="btn-reply"><i class="fa fa-reply"></i> Reply</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="inq-empty">No inquiries yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+{% block title %}Questions – Admin{% endblock %}
+{% block page_title %}Questions (MCQ){% endblock %}
+
+{% block sidebar_nav %}
+    <a href="{% url 'website:admin_dashboard' %}"><i class="fa fa-tachometer"></i> Dashboard</a>
+    <a href="{% url 'website:admin_questions_list' %}" class="db--active"><i class="fa fa-list-alt"></i> Questions</a>
+    <a href="{% url 'website:admin_add_question' %}"><i class="fa fa-plus-circle"></i> Add question</a>
+    <a href="{% url 'website:admin_add_case_study' %}"><i class="fa fa-folder-open"></i> Add case study</a>
+    <a href="{% url 'website:admin_add_books_slides' %}"><i class="fa fa-book"></i> Add books and slides</a>
+    <a href="{% url 'website:admin_all_users' %}"><i class="fa fa-users"></i> All users</a>
+    <a href="{% url 'website:admin_payments' %}"><i class="fa fa-credit-card"></i> Payments</a>
+    <a href="{% url 'website:admin_inquiries_list' %}"><i class="fa fa-envelope"></i> Inquiries</a>
+{% endblock %}
+
+{% block bottom_nav %}
+    <a href="{% url 'website:admin_dashboard' %}" class="db-bottom__item"><i class="fa fa-tachometer"></i> Home</a>
+    <a href="{% url 'website:admin_questions_list' %}" class="db-bottom__item db--active"><i class="fa fa-list-alt"></i> Questions</a>
+    <a href="{% url 'website:admin_add_question' %}" class="db-bottom__item"><i class="fa fa-plus-circle"></i> Add</a>
+    <a href="{% url 'website:admin_add_case_study' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Case study</a>
+    <a href="{% url 'website:admin_add_books_slides' %}" class="db-bottom__item"><i class="fa fa-book"></i> Books</a>
+    <a href="{% url 'website:admin_all_users' %}" class="db-bottom__item"><i class="fa fa-users"></i> Users</a>
+    <a href="{% url 'website:admin_payments' %}" class="db-bottom__item"><i class="fa fa-credit-card"></i> Payments</a>
+    <a href="{% url 'website:admin_inquiries_list' %}" class="db-bottom__item"><i class="fa fa-envelope"></i> Inquiries</a>
+{% endblock %}
+
+{% block content %}
+    <div class="db-card db-card--form">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem;">
+            <p class="db-card__text" style="margin: 0;">Manage MCQ questions. Add, edit, or delete. Saved directly to Supabase.</p>
+            <a href="{% url 'website:admin_question_add' %}" class="btn-save" style="text-decoration: none; display: inline-block;">Add question</a>
+        </div>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success" style="border-radius: 8px; margin-bottom: 1rem;">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        <div class="table-responsive">
+            <table class="table table-sm" style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th style="width: 3rem;">#</th>
+                        <th>Question</th>
+                        <th style="width: 5rem;">Answer</th>
+                        <th style="width: 8rem;">Topic</th>
+                        <th style="width: 10rem;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in questions %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ q.question_text|truncatewords:15 }}</td>
+                        <td><strong>{{ q.correct_answer }}</strong></td>
+                        <td>{{ q.topic|default:"—" }}</td>
+                        <td>
+                            <a href="{% url 'website:admin_question_edit' q.pk %}" style="margin-right: 0.5rem;">Edit</a>
+                            <a href="{% url 'website:admin_question_delete' q.pk %}" style="color: #dc2626;">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5">No questions yet. <a href="{% url 'website:admin_question_add' %}">Add one</a>.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
