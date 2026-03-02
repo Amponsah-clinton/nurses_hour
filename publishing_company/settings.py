@@ -20,7 +20,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*", '.academicdigital.space', 'doi.ms', 'www.doi.ms']
+ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1' , '.vercel.app']
 
 # CSRF and Security Settings for Production
 CSRF_TRUSTED_ORIGINS = [
