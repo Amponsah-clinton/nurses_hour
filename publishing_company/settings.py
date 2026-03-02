@@ -6,6 +6,7 @@ from pathlib import Path
 import os
 import dj_database_url
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,7 +19,7 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = ["*", '.academicdigital.space', 'doi.ms', 'www.doi.ms']
 
@@ -107,6 +108,13 @@ if DATABASE_URL:
         default=DATABASE_URL,
         conn_max_age=600,
         conn_health_checks=True,
+    )
+
+if not DATABASE_URL and not DEBUG:
+    # In production without DATABASE_URL configured, fail fast instead of
+    # trying to write to a read-only SQLite file in the deployment bundle.
+    raise ImproperlyConfigured(
+        'DATABASE_URL is not set. Configure a production database (e.g. Supabase Postgres).'
     )
 
 # Supabase Configuration (combining SQLite + Supabase)
