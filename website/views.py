@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
+from django.db import OperationalError
 from datetime import timedelta
 from django.template.loader import render_to_string
 from .forms import SignUpForm, LoginForm, AdminMCQForm, AdminCaseStudyForm, AdminBookSlideForm, AdminPaymentForm, ProfileForm, SupportForm
@@ -101,18 +102,25 @@ def redirect_to_dashboard(user):
 
 
 def _get_landing_stats():
-    """Visits in 24h = count + 100. Users = 1000 + User.count()."""
-    since = timezone.now() - timedelta(hours=24)
-    visits_24h = Visit.objects.filter(created_at__gte=since).count()
-    return {
-        'visits_display': visits_24h + 100,
-        'users_display': 1000 + User.objects.count(),
-    }
+    """Visits in 24h = count + 100. Users = 1000 + User.count(). Safe when DB is missing/unmigrated (e.g. Vercel /tmp)."""
+    try:
+        since = timezone.now() - timedelta(hours=24)
+        visits_24h = Visit.objects.filter(created_at__gte=since).count()
+        users_count = User.objects.count()
+        return {
+            'visits_display': visits_24h + 100,
+            'users_display': 1000 + users_count,
+        }
+    except OperationalError:
+        return {'visits_display': 100, 'users_display': 1000}
 
 
 def home(request):
     if request.method == 'GET':
-        Visit.objects.create()
+        try:
+            Visit.objects.create()
+        except OperationalError:
+            pass  # DB may be read-only or tables missing (e.g. Vercel /tmp)
     stats = _get_landing_stats()
     return render(request, 'website/index.html', stats)
 

@@ -33,6 +33,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://doi.academicdigital.space',
     'https://nurseshour.vercel.app',
     'http://nurseshour.vercel.app',
+    'https://nurses-hour.vercel.app',
+    'http://nurses-hour.vercel.app',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
 ]
