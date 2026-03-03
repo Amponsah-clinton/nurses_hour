@@ -158,6 +158,40 @@
     font-size: 0.8rem;
     color: var(--db-muted);
 }
+.pr-next-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.7rem 1.6rem;
+    border-radius: 999px;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    background: #2563eb;
+    color: #f9fafb;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+    cursor: pointer;
+    transition: transform 0.07s ease, box-shadow 0.12s ease, filter 0.12s ease, background 0.2s ease;
+}
+.pr-next-btn i {
+    font-size: 1rem;
+}
+.pr-next-btn:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.3);
+}
+.pr-next-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.22);
+}
+.pr-next-btn:focus-visible {
+    outline: 2px solid #22c55e;
+    outline-offset: 3px;
+}
 @media (max-width: 575px) {
     .pr-header-row {
         align-items: flex-start;
@@ -257,7 +291,7 @@
                 <div class="pr-footer-hint">
                     Select your best answer, then continue. Your score updates automatically.
                 </div>
-                <button type="submit" class="btn-save">
+                <button type="submit" class="btn-save pr-next-btn">
                     {% if index < total %}<i class="fa fa-arrow-right"></i> Next{% else %}<i class="fa fa-flag-checkered"></i> Finish{% endif %}
                 </button>
             </div>

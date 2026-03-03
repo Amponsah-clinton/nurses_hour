@@ -33,7 +33,12 @@
                 <p class="db-card__text" style="margin-bottom: 1rem;">Record a payment. Saved to Django and synced to Supabase.</p>
                 {% if messages %}
                     {% for message in messages %}
-                        <div class="alert alert-success" style="border-radius: 8px; margin-bottom: 1rem;">{{ message }}</div>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 8px; margin-bottom: 1rem;">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
                     {% endfor %}
                 {% endif %}
                 <form method="post" class="db-form db-form--grid">
