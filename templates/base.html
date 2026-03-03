@@ -12,7 +12,9 @@
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/owl.carousel.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
-    <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+    <!-- Font Awesome 4.7 from CDN only (local css has no webfont files, so icons fail; CDN supplies fonts) -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcDcOU3cW3N2RCQND8hzY37MDK3FAr7vAuUP+SM=" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'css/themify-icons.css' %}">
     <link rel="stylesheet" href="{% static 'css/nice-select.css' %}">
     <link rel="stylesheet" href="{% static 'css/flaticon.css' %}">
@@ -43,8 +45,14 @@
         .header-auth-btns { gap: 0.3rem; margin-left: 0; }
         .header-btn { padding: 6px 12px; font-size: 11px; }
     }
-    /* Footer developer credit – orange, distinct */
-    .footer-dev { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.15); }
+    /* Footer – links and developer credit */
+    .footer .footer_top .footer_widget ul li { margin-bottom: 0.5rem; }
+    .footer .footer_top .footer_widget ul li a { color: rgba(255,255,255,0.85); text-decoration: none; transition: color 0.2s, padding-left 0.2s; display: inline-block; }
+    .footer .footer_top .footer_widget ul li a:hover { color: #fff; padding-left: 4px; }
+    .footer .footer_title { font-size: 1.1rem; font-weight: 600; color: #fff !important; margin-bottom: 1rem; }
+    .footer .copy-right_text { padding-top: 1rem; padding-bottom: 1.5rem; }
+    .footer .copy_right { color: rgba(255,255,255,0.8); font-size: 0.95rem; margin: 0; }
+    .footer-dev { margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.15); display: inline-block; }
     .footer-dev a { color: #ea580c; font-weight: 700; text-decoration: none; transition: color 0.2s, text-decoration 0.2s; }
     .footer-dev a:hover { color: #f97316; text-decoration: underline; }
     .footer-dev .footer-dev__icon { margin-right: 0.25rem; vertical-align: middle; }
@@ -56,6 +64,58 @@
     }
     .header-area {
         background: #ffffff;
+    }
+    /* Mobile dropdown: style auth items like header buttons */
+    @media (max-width: 991px) {
+        .slicknav_nav .auth-nav-item {
+            margin: 0 0 1px 0;
+            padding: 0 10px 8px;
+        }
+        .slicknav_nav .auth-nav-item a {
+            display: block;
+            padding: 10px 14px;
+            margin: 0;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            text-align: center;
+            border: 1px solid transparent;
+        }
+        .slicknav_nav .auth-nav-item--login a {
+            background: #234262;
+            color: #fff !important;
+        }
+        .slicknav_nav .auth-nav-item--login a:hover {
+            background: #1a3350;
+            color: #fff !important;
+        }
+        .slicknav_nav .auth-nav-item--signup a {
+            background: #fff;
+            color: #232637 !important;
+            border-color: #232637;
+        }
+        .slicknav_nav .auth-nav-item--signup a:hover {
+            background: #232637;
+            color: #fff !important;
+        }
+        .slicknav_nav .auth-nav-item--dashboard a {
+            background: #4b5563;
+            color: #fff !important;
+        }
+        .slicknav_nav .auth-nav-item--dashboard a:hover {
+            background: #374151;
+            color: #fff !important;
+        }
+        .slicknav_nav .auth-nav-item--logout a {
+            background: #dc2626;
+            color: #fff !important;
+        }
+        .slicknav_nav .auth-nav-item--logout a:hover {
+            background: #b91c1c;
+            color: #fff !important;
+        }
     }
     </style>
     {% block extra_css %}{% endblock %}
@@ -88,10 +148,17 @@
                                                 <li><a href="{% url 'website:home' %}">home</a></li>
                                                 <li><a href="{% url 'website:courses' %}">Courses</a></li>
                                                 <li><a href="{% url 'website:contact' %}">Contact</a></li>
+                                                {% if user.is_authenticated %}
+                                                <li class="d-lg-none auth-nav-item auth-nav-item--dashboard"><a href="{% url 'website:dashboard' %}">Dashboard</a></li>
+                                                <li class="d-lg-none auth-nav-item auth-nav-item--logout"><a href="{% url 'website:logout' %}">Log out</a></li>
+                                                {% else %}
+                                                <li class="d-lg-none auth-nav-item auth-nav-item--login"><a href="{% url 'website:login' %}">Log in</a></li>
+                                                <li class="d-lg-none auth-nav-item auth-nav-item--signup"><a href="{% url 'website:signup' %}">Sign up</a></li>
+                                                {% endif %}
                                             </ul>
                                         </nav>
                                     </div>
-                                    <div class="header-auth-btns d-flex align-items-center">
+                                    <div class="header-auth-btns d-none d-lg-flex align-items-center">
                                         {% if user.is_authenticated %}
                                         <a href="{% url 'website:dashboard' %}" class="header-btn header-btn--secondary">Dashboard</a>
                                         <a href="{% url 'website:logout' %}" class="header-btn header-btn--logout"><i class="fa fa-sign-out"></i> Log out</a>
@@ -128,19 +195,18 @@
                             <ul>
                                 <li><a href="{% url 'website:home' %}">Home</a></li>
                                 <li><a href="{% url 'website:courses' %}">Courses</a></li>
-                                <li><a href="{% url 'website:event' %}">Events</a></li>
                                 <li><a href="{% url 'website:contact' %}">Contact</a></li>
                             </ul>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6 col-lg-3">
                         <div class="footer_widget">
-                            <h3 class="footer_title">Study</h3>
+                            <h3 class="footer_title">What we offer</h3>
                             <ul>
+                                <li><a href="{% url 'website:case_studies' %}">My Grandfather's BOX</a></li>
+                                <li><a href="{% url 'website:case_studies' %}">My Care Plan</a></li>
+                                <li><a href="{% url 'website:case_studies' %}">Case Study AI</a></li>
                                 <li><a href="{% url 'website:courses' %}">Practice questions</a></li>
-                                <li><a href="{% url 'website:courses' %}">Case studies</a></li>
-                                <li><a href="{% url 'website:courses' %}">Lecture notes & books</a></li>
-                                <li><a href="{% url 'website:admissions' %}">Admissions</a></li>
                             </ul>
                         </div>
                     </div>
@@ -148,8 +214,8 @@
                         <div class="footer_widget">
                             <h3 class="footer_title">Resources</h3>
                             <ul>
-                                <li><a href="{% url 'website:event' %}">Events</a></li>
-                                <li><a href="{% url 'website:event_details' %}">Event details</a></li>
+                                <li><a href="{% url 'website:resources' %}">Lecture notes & books</a></li>
+                                <li><a href="{% url 'website:admissions' %}">Admissions</a></li>
                                 <li><a href="{% url 'website:contact' %}">Contact us</a></li>
                             </ul>
                         </div>
@@ -174,7 +240,8 @@
                 <div class="row">
                     <div class="col-xl-12">
                         <p class="copy_right text-center">
-                            Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | <span class="footer-dev">Developed by <a href="https://wa.me/233556105897" target="_blank" rel="noopener noreferrer" title="Contact on WhatsApp"><i class="fa fa-whatsapp footer-dev__icon" aria-hidden="true"></i>TechAge Technologies</a></span>
+                            &copy; <script>document.write(new Date().getFullYear());</script> NurseHour. All rights reserved.
+                            <span class="footer-dev">Developed by <a href="https://wa.me/233556105897" target="_blank" rel="noopener noreferrer" title="Contact on WhatsApp"><i class="fa fa-whatsapp footer-dev__icon" aria-hidden="true"></i>TechAge Technologies</a></span>
                         </p>
                     </div>
                 </div>

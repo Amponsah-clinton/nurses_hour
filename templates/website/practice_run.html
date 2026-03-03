@@ -19,15 +19,171 @@
     <a href="{% url 'website:profile_support' %}" class="db-bottom__item"><i class="fa fa-user"></i> Profile</a>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+.pr-layout {
+    max-width: 860px;
+    margin: 0 auto;
+}
+.pr-card {
+    padding: 1.5rem 1.75rem;
+}
+@media (max-width: 575px) {
+    .pr-card {
+        padding: 1.25rem 1.1rem;
+    }
+}
+.pr-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+.pr-progress-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--db-muted);
+    margin-bottom: 0.25rem;
+}
+.pr-progress-bar {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    overflow: hidden;
+}
+.pr-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4f46e5, #22c55e);
+}
+.pr-question-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--db-muted);
+    margin-bottom: 0.25rem;
+}
+.pr-question-text {
+    font-size: 1.02rem;
+    line-height: 1.8;
+    margin-bottom: 0.75rem;
+}
+.pr-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 1.15rem;
+}
+.pr-meta__badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+.pr-meta__badge--paper {
+    background: #ecfdf5;
+    color: #047857;
+}
+.pr-meta__badge--timed {
+    background: #fef3c7;
+    color: #92400e;
+}
+.pr-options {
+    margin-top: 0.25rem;
+}
+.pr-option {
+    margin-bottom: 0.7rem;
+}
+.pr-option__input {
+    display: none;
+}
+.pr-option__label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, transform 0.05s ease;
+}
+.pr-option__label:hover {
+    border-color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
+}
+.pr-option__letter {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 2px solid #cbd5f5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #4b5563;
+    flex-shrink: 0;
+}
+.pr-option__text {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #111827;
+}
+.pr-option__input:checked + .pr-option__label {
+    border-color: #4f46e5;
+    background: #eef2ff;
+    box-shadow: 0 6px 18px rgba(79, 70, 229, 0.18);
+    transform: translateY(-1px);
+}
+.pr-option__input:checked + .pr-option__label .pr-option__letter {
+    border-color: #4f46e5;
+    background: #4f46e5;
+    color: #ffffff;
+}
+.pr-footer {
+    margin-top: 1.35rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.pr-footer-hint {
+    font-size: 0.8rem;
+    color: var(--db-muted);
+}
+@media (max-width: 575px) {
+    .pr-header-row {
+        align-items: flex-start;
+    }
+    .pr-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .pr-footer .btn-save {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
 {% block content %}
-    <div class="db-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;">
+    <div class="pr-layout">
+    <div class="db-card pr-card">
+        <div class="pr-header-row">
             <div style="flex:1;">
-                <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--db-muted);margin-bottom:0.25rem;">
+                <div class="pr-progress-label">
                     Question {{ index }} of {{ total }}
                 </div>
-                <div style="width:100%;height:6px;border-radius:999px;background:#e5e7eb;overflow:hidden;">
-                    <div style="width:{{ progress_pct }}%;height:100%;background:#4f46e5;"></div>
+                <div class="pr-progress-bar">
+                    <div class="pr-progress-fill" style="width:{{ progress_pct }}%;"></div>
                 </div>
             </div>
             {% if timed %}
@@ -42,43 +198,71 @@
             {% endif %}
         </div>
 
-        <h3 class="db-card__title" style="margin-bottom:0.75rem;">Question</h3>
-        <p style="font-size:0.98rem;line-height:1.7;margin-bottom:1rem;">{{ question.question_text }}</p>
+        <div class="pr-question-title">Question</div>
+        <p class="pr-question-text">{{ question.question_text }}</p>
+
+        <div class="pr-meta">
+            {% if question.program %}
+            <span class="pr-meta__badge">{{ question.get_program_display }}</span>
+            {% endif %}
+            {% if question.paper %}
+            <span class="pr-meta__badge pr-meta__badge--paper">{{ question.get_paper_display }}</span>
+            {% endif %}
+            {% if session.timed %}
+            <span class="pr-meta__badge pr-meta__badge--timed"><i class="fa fa-clock-o"></i> Timed mode</span>
+            {% endif %}
+        </div>
 
         <form method="post" id="practiceRunForm">
             {% csrf_token %}
-            <div class="form-group form-group--full">
+            <div class="form-group form-group--full pr-options">
                 {% if question.option_a %}
-                <div class="custom-control custom-radio" style="margin-bottom:0.6rem;">
-                    <input type="radio" id="optA" name="answer" value="A" class="custom-control-input">
-                    <label class="custom-control-label" for="optA"><strong>A.</strong> {{ question.option_a }}</label>
+                <div class="pr-option">
+                    <input type="radio" id="optA" name="answer" value="A" class="pr-option__input">
+                    <label class="pr-option__label" for="optA">
+                        <span class="pr-option__letter">A</span>
+                        <span class="pr-option__text">{{ question.option_a }}</span>
+                    </label>
                 </div>
                 {% endif %}
                 {% if question.option_b %}
-                <div class="custom-control custom-radio" style="margin-bottom:0.6rem;">
-                    <input type="radio" id="optB" name="answer" value="B" class="custom-control-input">
-                    <label class="custom-control-label" for="optB"><strong>B.</strong> {{ question.option_b }}</label>
+                <div class="pr-option">
+                    <input type="radio" id="optB" name="answer" value="B" class="pr-option__input">
+                    <label class="pr-option__label" for="optB">
+                        <span class="pr-option__letter">B</span>
+                        <span class="pr-option__text">{{ question.option_b }}</span>
+                    </label>
                 </div>
                 {% endif %}
                 {% if question.option_c %}
-                <div class="custom-control custom-radio" style="margin-bottom:0.6rem;">
-                    <input type="radio" id="optC" name="answer" value="C" class="custom-control-input">
-                    <label class="custom-control-label" for="optC"><strong>C.</strong> {{ question.option_c }}</label>
+                <div class="pr-option">
+                    <input type="radio" id="optC" name="answer" value="C" class="pr-option__input">
+                    <label class="pr-option__label" for="optC">
+                        <span class="pr-option__letter">C</span>
+                        <span class="pr-option__text">{{ question.option_c }}</span>
+                    </label>
                 </div>
                 {% endif %}
                 {% if question.option_d %}
-                <div class="custom-control custom-radio" style="margin-bottom:0.6rem;">
-                    <input type="radio" id="optD" name="answer" value="D" class="custom-control-input">
-                    <label class="custom-control-label" for="optD"><strong>D.</strong> {{ question.option_d }}</label>
+                <div class="pr-option">
+                    <input type="radio" id="optD" name="answer" value="D" class="pr-option__input">
+                    <label class="pr-option__label" for="optD">
+                        <span class="pr-option__letter">D</span>
+                        <span class="pr-option__text">{{ question.option_d }}</span>
+                    </label>
                 </div>
                 {% endif %}
             </div>
-            <div style="margin-top:1.25rem;display:flex;justify-content:flex-end;">
+            <div class="pr-footer">
+                <div class="pr-footer-hint">
+                    Select your best answer, then continue. Your score updates automatically.
+                </div>
                 <button type="submit" class="btn-save">
                     {% if index < total %}<i class="fa fa-arrow-right"></i> Next{% else %}<i class="fa fa-flag-checkered"></i> Finish{% endif %}
                 </button>
             </div>
         </form>
+    </div>
     </div>
 {% endblock %}
 

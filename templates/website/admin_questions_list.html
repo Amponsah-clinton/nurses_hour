@@ -28,7 +28,10 @@
 {% block content %}
     <div class="db-card db-card--form">
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem;">
-            <p class="db-card__text" style="margin: 0;">Manage MCQ questions. Add, edit, or delete. Saved directly to Supabase.</p>
+            <p class="db-card__text" style="margin: 0;">
+                Manage MCQ questions. Add, edit, or delete. Saved directly to Supabase.<br>
+                <strong>Total questions:</strong> {{ paginator.count }}
+            </p>
             <a href="{% url 'website:admin_question_add' %}" class="btn-save" style="text-decoration: none; display: inline-block;">Add question</a>
         </div>
         {% if messages %}
@@ -43,6 +46,7 @@
                         <th style="width: 3rem;">#</th>
                         <th>Question</th>
                         <th style="width: 5rem;">Answer</th>
+                        <th style="width: 14rem;">Programme / paper</th>
                         <th style="width: 8rem;">Topic</th>
                         <th style="width: 10rem;">Actions</th>
                     </tr>
@@ -50,9 +54,19 @@
                 <tbody>
                     {% for q in questions %}
                     <tr>
-                        <td>{{ forloop.counter }}</td>
+                        <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
                         <td>{{ q.question_text|truncatewords:15 }}</td>
                         <td><strong>{{ q.correct_answer }}</strong></td>
+                        <td>
+                            {% if q.program %}
+                                <div>{{ q.get_program_display }}</div>
+                            {% else %}
+                                <div>—</div>
+                            {% endif %}
+                            {% if q.paper %}
+                                <div class="text-muted small">{{ q.get_paper_display }}</div>
+                            {% endif %}
+                        </td>
                         <td>{{ q.topic|default:"—" }}</td>
                         <td>
                             <a href="{% url 'website:admin_question_edit' q.pk %}" style="margin-right: 0.5rem;">Edit</a>
@@ -60,10 +74,41 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="5">No questions yet. <a href="{% url 'website:admin_question_add' %}">Add one</a>.</td></tr>
+                    <tr><td colspan="6">No questions yet. <a href="{% url 'website:admin_question_add' %}">Add one</a>.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center" style="margin-bottom: 0;">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo; Prev</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo; Prev</span>
+                </li>
+                {% endif %}
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next &raquo;</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Next &raquo;</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     </div>
 {% endblock %}

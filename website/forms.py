@@ -170,6 +170,32 @@ class AdminMCQForm(forms.ModelForm):
         # Make answer explanation compulsory in the admin add-question page
         self.fields['answer_explanation'].required = True
 
+    def clean(self):
+        """
+        Prevent duplicate questions being created from the single-question form.
+        A duplicate is defined as same question_text (case-insensitive) for the
+        same programme and paper.
+        """
+        data = super().clean()
+        text = (data.get('question_text') or '').strip()
+        program = (data.get('program') or '').strip()
+        paper = (data.get('paper') or '').strip()
+        if not text:
+            return data
+
+        qs = MCQQuestion.objects.filter(question_text__iexact=text)
+        if program:
+            qs = qs.filter(program=program)
+        if paper:
+            qs = qs.filter(paper=paper)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError(
+                'A question with the same text already exists for this programme and paper.'
+            )
+        return data
+
 
 class AdminCaseStudyForm(forms.ModelForm):
     class Meta:

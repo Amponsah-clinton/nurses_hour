@@ -11,9 +11,10 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
-from django.db import OperationalError
+from django.db import OperationalError, models
 from datetime import timedelta
 from django.template.loader import render_to_string
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from .forms import SignUpForm, LoginForm, AdminMCQForm, AdminCaseStudyForm, AdminBookSlideForm, AdminPaymentForm, ProfileForm, SupportForm
 from .models import Visit, MCQQuestion, CaseStudy, BookOrSlide, Payment, Inquiry, CaseStudyAccess, ResourceBookmark, UserProfile, PracticeSession, PracticeAnswer
 
@@ -610,6 +611,36 @@ def admin_dashboard(request):
     book_count = BookOrSlide.objects.count()
     payment_count = Payment.objects.count()
     inquiry_count = Inquiry.objects.count()
+
+    # Breakdown of questions by programme and written paper
+    raw_counts = (
+        MCQQuestion.objects.values('program', 'paper')
+        .annotate(total=models.Count('id'))
+    )
+    count_map = {
+        (row['program'] or '', row['paper'] or ''): row['total']
+        for row in raw_counts
+    }
+
+    question_breakdown = []
+    for prog_code, papers in PAPER_CONFIG.items():
+        prog_total = 0
+        rows = []
+        for paper in papers:
+            p_code = paper['code']
+            count = count_map.get((prog_code, p_code), 0)
+            prog_total += count
+            rows.append({
+                'paper_code': p_code,
+                'paper_label': paper['title'],
+                'count': count,
+            })
+        question_breakdown.append({
+            'program_code': prog_code,
+            'program_label': PROGRAM_LABELS.get(prog_code, prog_code),
+            'rows': rows,
+            'total': prog_total,
+        })
     context = {
         'visits_24h': visits_24h + 100,
         'user_count': 1000 + user_count,
@@ -618,6 +649,7 @@ def admin_dashboard(request):
         'book_count': book_count,
         'payment_count': payment_count,
         'inquiry_count': inquiry_count,
+        'question_breakdown': question_breakdown,
         'recent_users': User.objects.order_by('-date_joined')[:10],
         'recent_payments': Payment.objects.order_by('-created_at')[:8],
     }
@@ -649,6 +681,24 @@ def _create_mcq_from_row(data):
     if kwargs.get('correct_answer') not in ('A', 'B', 'C', 'D'):
         raise ValueError('correct_answer must be A, B, C, or D')
     return kwargs
+
+
+def _mcq_exists(kwargs):
+    """
+    Check if an MCQQuestion with the same text/program/paper already exists.
+    Used to prevent duplicates during bulk imports.
+    """
+    text = (kwargs.get('question_text') or '').strip()
+    program = (kwargs.get('program') or '').strip()
+    paper = (kwargs.get('paper') or '').strip()
+    if not text:
+        return False
+    qs = MCQQuestion.objects.filter(question_text__iexact=text)
+    if program:
+        qs = qs.filter(program=program)
+    if paper:
+        qs = qs.filter(paper=paper)
+    return qs.exists()
 
 
 @login_required
@@ -702,18 +752,25 @@ def admin_add_question(request):
                     if not isinstance(data, list):
                         data = [data]
                     created = 0
+                    skipped = 0
                     from .supabase_sync import sync_mcq_to_supabase
                     for item in data:
                         if not isinstance(item, dict):
                             continue
                         kwargs = _create_mcq_from_row(item)
+                        if _mcq_exists(kwargs):
+                            skipped += 1
+                            continue
                         obj = MCQQuestion.objects.create(**kwargs)
                         try:
                             sync_mcq_to_supabase(obj)
                         except Exception:
                             pass
                         created += 1
-                    messages.success(request, f'Imported {created} question(s) from JSON.')
+                    msg = f'Imported {created} question(s) from JSON.'
+                    if skipped:
+                        msg += f' Skipped {skipped} duplicate(s).'
+                    messages.success(request, msg)
                     return redirect('website:admin_questions_list')
                 except json.JSONDecodeError as e:
                     messages.error(request, f'Invalid JSON: {e}')
@@ -735,19 +792,26 @@ def admin_add_question(request):
                 try:
                     reader = csv.DictReader(io.StringIO(raw))
                     created = 0
+                    skipped = 0
                     from .supabase_sync import sync_mcq_to_supabase
                     for row in reader:
                         row = {k.strip(): v for k, v in row.items() if k}
                         if not row.get('question_text'):
                             continue
                         kwargs = _create_mcq_from_row(row)
+                        if _mcq_exists(kwargs):
+                            skipped += 1
+                            continue
                         obj = MCQQuestion.objects.create(**kwargs)
                         try:
                             sync_mcq_to_supabase(obj)
                         except Exception:
                             pass
                         created += 1
-                    messages.success(request, f'Imported {created} question(s) from CSV.')
+                    msg = f'Imported {created} question(s) from CSV.'
+                    if skipped:
+                        msg += f' Skipped {skipped} duplicate(s).'
+                    messages.success(request, msg)
                     return redirect('website:admin_questions_list')
                 except ValueError as e:
                     messages.error(request, str(e))
@@ -769,8 +833,21 @@ def admin_add_question(request):
 @admin_required
 def admin_questions_list(request):
     """List all MCQ questions with links to add, edit, delete."""
-    questions = MCQQuestion.objects.all().order_by('-created_at')
-    return render(request, 'website/admin_questions_list.html', {'questions': questions})
+    qs = MCQQuestion.objects.all().order_by('-created_at')
+    paginator = Paginator(qs, 100)
+    page = request.GET.get('page') or 1
+    try:
+        questions = paginator.page(page)
+    except PageNotAnInteger:
+        questions = paginator.page(1)
+    except EmptyPage:
+        questions = paginator.page(paginator.num_pages)
+    context = {
+        'questions': questions,
+        'page_obj': questions,
+        'paginator': paginator,
+    }
+    return render(request, 'website/admin_questions_list.html', context)
 
 
 @login_required
