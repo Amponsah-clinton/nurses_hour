@@ -47,6 +47,10 @@ CSRF_USE_SESSIONS = False
 SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+# On Vercel, use signed-cookie sessions so login/logout work without the session DB table
+if os.getenv('VERCEL'):
+    SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+    SESSION_SAVE_EVERY_REQUEST = True
 
 # Application definition
 INSTALLED_APPS = [
