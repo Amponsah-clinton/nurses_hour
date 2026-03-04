@@ -1,10 +1,19 @@
-"""Sync Django data to Supabase (app_users, mcq_questions, case_studies, books_slides, payments)."""
+"""Sync Django data to Supabase (app_users, mcq_questions, case_studies, books_slides, payments).
+
+By default, syncing is DISABLED. Django already uses its configured DATABASE_URL
+(e.g. Supabase Postgres) as the primary database, so all reads/writes go there
+directly. These helpers are now opt‑in only to avoid duplicate writes.
+"""
 import json
 import urllib.request
 from django.conf import settings
 
+SYNC_ENABLED = getattr(settings, 'SUPABASE_SYNC_ENABLED', False)
+
 
 def _supabase_post(table, data):
+    if not SYNC_ENABLED:
+        return
     url = getattr(settings, 'SUPABASE_URL', None)
     key = getattr(settings, 'SUPABASE_SERVICE_KEY', None) or getattr(settings, 'SUPABASE_KEY', None)
     if not url or not key:
@@ -29,6 +38,8 @@ def _supabase_post(table, data):
 
 def sync_user_to_supabase(user):
     """Insert or update user in Supabase public.app_users. Fails silently if not configured."""
+    if not SYNC_ENABLED:
+        return
     url = getattr(settings, 'SUPABASE_URL', None)
     key = getattr(settings, 'SUPABASE_SERVICE_KEY', None) or getattr(settings, 'SUPABASE_KEY', None)
     if not url or not key:
@@ -64,6 +75,8 @@ def sync_user_to_supabase(user):
 
 
 def sync_mcq_to_supabase(mcq):
+    if not SYNC_ENABLED:
+        return
     _supabase_post('mcq_questions', {
         'question_text': mcq.question_text,
         'option_a': mcq.option_a,
@@ -79,6 +92,8 @@ def sync_mcq_to_supabase(mcq):
 
 
 def sync_case_study_to_supabase(case):
+    if not SYNC_ENABLED:
+        return
     _supabase_post('case_studies', {
         'title': case.title,
         'scenario': case.scenario or None,
@@ -88,6 +103,8 @@ def sync_case_study_to_supabase(case):
 
 
 def sync_book_slide_to_supabase(book):
+    if not SYNC_ENABLED:
+        return
     _supabase_post('books_slides', {
         'title': book.title,
         'description': book.description or None,
@@ -97,6 +114,8 @@ def sync_book_slide_to_supabase(book):
 
 
 def sync_payment_to_supabase(payment):
+    if not SYNC_ENABLED:
+        return
     _supabase_post('payments', {
         'user_email': payment.user_email or None,
         'amount': str(payment.amount),
@@ -106,6 +125,8 @@ def sync_payment_to_supabase(payment):
 
 
 def sync_inquiry_to_supabase(inquiry):
+    if not SYNC_ENABLED:
+        return
     _supabase_post('inquiries', {
         'name': inquiry.name,
         'email': inquiry.email,
@@ -117,6 +138,8 @@ def sync_inquiry_to_supabase(inquiry):
 
 def sync_practice_session_to_supabase(session, supabase_id=None):
     """Store a practice session summary in Supabase public.practice_sessions."""
+    if not SYNC_ENABLED:
+        return
     user_email = getattr(session.user, 'email', None)
     payload = {
         'django_session_id': session.id,
@@ -134,6 +157,8 @@ def sync_practice_session_to_supabase(session, supabase_id=None):
 
 def sync_practice_answer_to_supabase(answer, practice_session_supabase_id=None):
     """Store a single practice answer row in Supabase public.practice_answers."""
+    if not SYNC_ENABLED:
+        return
     q = answer.question
     session = answer.session
     user_email = getattr(answer.user, 'email', None)
