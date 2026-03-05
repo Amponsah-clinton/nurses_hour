@@ -9,6 +9,7 @@
     <a href="{% url 'website:admin_add_question' %}"><i class="fa fa-plus-circle"></i> Add question</a>
     <a href="{% url 'website:admin_add_case_study' %}" class="db--active"><i class="fa fa-folder-open"></i> Add case study</a>
     <a href="{% url 'website:admin_add_books_slides' %}"><i class="fa fa-book"></i> Add books and slides</a>
+    <a href="{% url 'website:admin_content_supabase' %}"><i class="fa fa-database"></i> Case studies & Books</a>
     <a href="{% url 'website:admin_all_users' %}"><i class="fa fa-users"></i> All users</a>
     <a href="{% url 'website:admin_payments' %}"><i class="fa fa-credit-card"></i> Payments</a>
     <a href="{% url 'website:admin_inquiries_list' %}"><i class="fa fa-envelope"></i> Inquiries</a>
@@ -20,36 +21,174 @@
     <a href="{% url 'website:admin_add_question' %}" class="db-bottom__item"><i class="fa fa-plus-circle"></i> Add</a>
     <a href="{% url 'website:admin_add_case_study' %}" class="db-bottom__item db--active"><i class="fa fa-folder-open"></i> Case study</a>
     <a href="{% url 'website:admin_add_books_slides' %}" class="db-bottom__item"><i class="fa fa-book"></i> Books</a>
+    <a href="{% url 'website:admin_content_supabase' %}" class="db-bottom__item"><i class="fa fa-database"></i> Content</a>
     <a href="{% url 'website:admin_all_users' %}" class="db-bottom__item"><i class="fa fa-users"></i> Users</a>
     <a href="{% url 'website:admin_payments' %}" class="db-bottom__item"><i class="fa fa-credit-card"></i> Payments</a>
     <a href="{% url 'website:admin_inquiries_list' %}" class="db-bottom__item"><i class="fa fa-envelope"></i> Inquiries</a>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+.acs-wrap { max-width: 680px; }
+.acs-header {
+    display: flex; align-items: center; gap: 1rem;
+    background: #232637; color: #fff;
+    border-radius: 14px; padding: 1.3rem 1.5rem; margin-bottom: 1.5rem;
+}
+.acs-header__icon {
+    width: 46px; height: 46px; flex-shrink: 0;
+    background: rgba(255,255,255,0.12); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.25rem;
+}
+.acs-header__text h2 { margin: 0 0 0.2rem; font-size: 1.1rem; font-weight: 700; }
+.acs-header__text p  { margin: 0; font-size: 0.82rem; opacity: 0.72; }
+.acs-card {
+    background: #fff; border: 1.5px solid #e5e5e5;
+    border-radius: 14px; padding: 1.5rem; margin-bottom: 1.25rem;
+}
+.acs-card__label {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: #78716c; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.45rem;
+}
+.acs-field { margin-bottom: 1.1rem; }
+.acs-field:last-child { margin-bottom: 0; }
+.acs-field label { display: block; font-size: 0.85rem; font-weight: 600; color: #1c1917; margin-bottom: 0.35rem; }
+.acs-field label .req { color: #dc2626; margin-left: 2px; }
+.acs-field .form-control {
+    width: 100%; border: 1.5px solid #e5e5e5; border-radius: 9px;
+    padding: 0.65rem 0.9rem; font-size: 0.9rem; background: #fafafa;
+    transition: border-color 0.18s, background 0.18s; color: #1c1917;
+}
+.acs-field .form-control:focus { border-color: #232637; background: #fff; outline: none; box-shadow: 0 0 0 3px rgba(35,38,55,0.1); }
+.acs-field textarea.form-control { min-height: 100px; resize: vertical; }
+.acs-field .field-hint { font-size: 0.75rem; color: #78716c; margin-top: 0.3rem; }
+.acs-field .invalid-feedback { font-size: 0.78rem; color: #dc2626; margin-top: 0.25rem; }
+.acs-upload-zone {
+    border: 2px dashed #d4d4d8; border-radius: 10px;
+    padding: 1.25rem 1rem; text-align: center; background: #f9f9f9;
+    transition: border-color 0.2s, background 0.2s; cursor: pointer; position: relative;
+}
+.acs-upload-zone:hover { border-color: #232637; background: #f5f5f5; }
+.acs-upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.acs-upload-zone__icon { font-size: 1.5rem; color: #a3a3a3; margin-bottom: 0.4rem; }
+.acs-upload-zone__text { font-size: 0.82rem; color: #57534e; line-height: 1.4; }
+.acs-upload-zone__text strong { color: #232637; }
+.acs-divider {
+    display: flex; align-items: center; gap: 0.75rem;
+    margin: 1rem 0; color: #a3a3a3; font-size: 0.75rem;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.acs-divider::before, .acs-divider::after { content: ''; flex: 1; height: 1px; background: #e5e5e5; }
+.acs-submit {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: #232637; color: #fff; border: none;
+    padding: 0.75rem 1.75rem; border-radius: 9px;
+    font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    transition: background 0.18s, transform 0.12s; letter-spacing: 0.01em;
+}
+.acs-submit:hover { background: #1a1c28; transform: translateY(-1px); }
+.acs-alert {
+    padding: 0.9rem 1.1rem; border-radius: 10px; margin-bottom: 1.25rem;
+    font-size: 0.88rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.65rem;
+}
+.acs-alert--success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.acs-alert--warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.acs-alert i { margin-top: 1px; flex-shrink: 0; }
+@media (max-width: 479px) { .acs-card { padding: 1.1rem; } .acs-header { padding: 1rem 1.1rem; } }
+</style>
+{% endblock %}
+
 {% block content %}
-    <div class="db-card db-card--form">
-        <p class="db-card__text" style="margin-bottom: 1.25rem;">Add a case study for clinical reasoning. Saved to Django and synced to Supabase <code>case_studies</code> table. Optional: upload a file to the Supabase <strong>case_study</strong> bucket and paste its URL.</p>
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 8px; margin-bottom: 1rem;">
-                    {{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-            {% endfor %}
-        {% endif %}
-        <form method="post" class="db-form db-form--grid">
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="form-group {% if field.name == 'scenario' or field.name == 'content' or field.name == 'file_url' %}form-group--full{% endif %}">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
-                    {{ field }}
-                    {% if field.errors %}<div class="invalid-feedback">{{ field.errors.0 }}</div>{% endif %}
-                </div>
-            {% endfor %}
-            <div class="form-group form-group--full">
-                <button type="submit" class="btn-save">Save case study</button>
-            </div>
-        </form>
+<div class="acs-wrap">
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="acs-alert {% if 'error' in message.tags or 'warning' in message.tags %}acs-alert--warning{% else %}acs-alert--success{% endif %}">
+            <i class="fa {% if 'error' in message.tags or 'warning' in message.tags %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %}" aria-hidden="true"></i>
+            <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="acs-header">
+        <div class="acs-header__icon"><i class="fa fa-folder-open" aria-hidden="true"></i></div>
+        <div class="acs-header__text">
+            <h2>Add case study</h2>
+            <p>Saved to Supabase &mdash; bucket: <strong>{{ case_study_bucket_name }}</strong></p>
+        </div>
     </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Core content -->
+        <div class="acs-card">
+            <div class="acs-card__label"><i class="fa fa-pencil" aria-hidden="true"></i> Case study details</div>
+
+            <div class="acs-field">
+                <label for="{{ form.title.id_for_label }}">Title <span class="req">*</span></label>
+                {{ form.title }}
+                {% if form.title.errors %}<div class="invalid-feedback">{{ form.title.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="acs-field">
+                <label for="{{ form.scenario.id_for_label }}">Scenario / Brief</label>
+                {{ form.scenario }}
+                <p class="field-hint">A short description shown on the catalogue page.</p>
+                {% if form.scenario.errors %}<div class="invalid-feedback">{{ form.scenario.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="acs-field">
+                <label for="{{ form.content.id_for_label }}">Full content</label>
+                {{ form.content }}
+                <p class="field-hint">Full text of the case study (shown after purchase).</p>
+                {% if form.content.errors %}<div class="invalid-feedback">{{ form.content.errors.0 }}</div>{% endif %}
+            </div>
+        </div>
+
+        <!-- File resource -->
+        <div class="acs-card">
+            <div class="acs-card__label"><i class="fa fa-paperclip" aria-hidden="true"></i> Attach a file (optional)</div>
+
+            <div class="acs-field">
+                <label>Upload file</label>
+                <div class="acs-upload-zone" id="acsUploadZone">
+                    {{ form.upload_file }}
+                    <div class="acs-upload-zone__icon"><i class="fa fa-cloud-upload" aria-hidden="true"></i></div>
+                    <div class="acs-upload-zone__text" id="acsUploadLabel">
+                        <strong>Click to choose a file</strong> or drag &amp; drop<br>
+                        PDF, DOC, or image &mdash; stored in Supabase Storage
+                    </div>
+                </div>
+                {% if form.upload_file.errors %}<div class="invalid-feedback">{{ form.upload_file.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="acs-divider">or paste a URL</div>
+
+            <div class="acs-field">
+                <label for="{{ form.file_url.id_for_label }}">File URL</label>
+                {{ form.file_url }}
+                <p class="field-hint">Leave blank if you uploaded a file above.</p>
+                {% if form.file_url.errors %}<div class="invalid-feedback">{{ form.file_url.errors.0 }}</div>{% endif %}
+            </div>
+        </div>
+
+        <button type="submit" class="acs-submit">
+            <i class="fa fa-save" aria-hidden="true"></i> Save case study
+        </button>
+    </form>
+</div>
+
+<script>
+(function(){
+    var input = document.querySelector('#acsUploadZone input[type="file"]');
+    var label = document.getElementById('acsUploadLabel');
+    if (!input || !label) return;
+    input.addEventListener('change', function(){
+        var name = this.files && this.files[0] ? this.files[0].name : null;
+        if (name) label.innerHTML = '<strong>' + name + '</strong><br><span style="font-size:0.75rem;color:#78716c;">File selected — click Save to upload</span>';
+    });
+})();
+</script>
 {% endblock %}

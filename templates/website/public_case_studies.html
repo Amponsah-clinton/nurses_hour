@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Case Studies – NurseHour{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Variables ── */
+:root {
+  --cs-dark: #232637;
+  --cs-muted: #6b7280;
+  --cs-border: #e5e7eb;
+  --cs-bg: #f8f9fb;
+  --cs-accent: #4f46e5;
+  --cs-green: #059669;
+  --cs-price: #be185d;
+}
+
+/* ── Hero ── */
+.cs-hero {
+  background: var(--cs-dark);
+  padding: 4rem 0 3.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.cs-hero::after {
+  content: '';
+  position: absolute;
+  right: -80px; top: -80px;
+  width: 400px; height: 400px;
+  background: rgba(79,70,229,0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.cs-hero__kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cs-hero__kicker::before {
+  content: '';
+  display: inline-block;
+  width: 24px; height: 2px;
+  background: rgba(255,255,255,0.4);
+}
+.cs-hero__title {
+  font-family: "Abril Fatface", cursive;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 400;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0 0 1rem;
+  max-width: 22em;
+}
+.cs-hero__sub {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.65;
+  margin: 0 0 1.75rem;
+  max-width: 34em;
+}
+.cs-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.cs-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 100px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+}
+.cs-hero__badge i { font-size: 0.85rem; }
+
+/* ── Catalogue section ── */
+.cs-catalogue {
+  padding: 4rem 0 5rem;
+  background: var(--cs-bg);
+}
+.cs-catalogue__header {
+  margin-bottom: 2.5rem;
+}
+.cs-catalogue__count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cs-muted);
+  margin-bottom: 0.5rem;
+}
+.cs-catalogue__title {
+  font-family: "Abril Fatface", cursive;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 400;
+  color: var(--cs-dark);
+  margin: 0;
+}
+
+/* ── Card grid ── */
+.cs-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+@media (min-width: 576px)  { .cs-grid { grid-template-columns: repeat(2, 1fr); gap: 1.75rem; } }
+@media (min-width: 992px)  { .cs-grid { grid-template-columns: repeat(3, 1fr); gap: 2rem; } }
+
+/* ── Card: minimal, no colored edges ── */
+.cs-card {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid #eef0f3;
+  transition: box-shadow 0.28s ease, transform 0.22s ease;
+}
+.cs-card:hover {
+  box-shadow: 0 16px 32px -8px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.cs-card__inner {
+  padding: 1.65rem 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.cs-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.cs-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #f4f5f7;
+  color: #5c5e6b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.cs-card__badge {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.38rem 0.8rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  letter-spacing: 0.02em;
+}
+.cs-card__badge--price {
+  background: #f4f5f7;
+  color: #374151;
+}
+.cs-card__badge--owned {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.cs-card__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem;
+  line-height: 1.38;
+  letter-spacing: -0.02em;
+}
+.cs-card__scenario {
+  font-size: 0.875rem;
+  line-height: 1.62;
+  color: #6b7280;
+  margin: 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cs-card__footer {
+  margin-top: 1.25rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid #f3f4f6;
+}
+.cs-card__cta {
+  width: 100%;
+  padding: 0.72rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.cs-card__cta--buy {
+  background: #232637;
+  color: #fff;
+}
+.cs-card__cta--buy:hover {
+  background: #1a1c28;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(35,38,55,0.25);
+}
+.cs-card__cta--owned {
+  background: #f9fafb;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+}
+.cs-card__cta--owned:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+.cs-card__cta--login {
+  background: #f9fafb;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+.cs-card__cta--login:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+/* ── Empty state ── */
+.cs-empty {
+  text-align: center;
+  padding: 4rem 1rem;
+}
+.cs-empty__icon {
+  font-size: 3rem; color: #d1d5db; margin-bottom: 1rem;
+}
+.cs-empty__title { font-size: 1.1rem; font-weight: 700; color: var(--cs-dark); margin-bottom: 0.5rem; }
+.cs-empty__text { color: var(--cs-muted); font-size: 0.9rem; }
+
+/* ── Login prompt banner ── */
+.cs-login-banner {
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+.cs-login-banner i { font-size: 1.15rem; color: #d97706; flex-shrink: 0; }
+.cs-login-banner__text { flex: 1; min-width: 180px; font-size: 0.9rem; color: #92400e; font-weight: 500; }
+.cs-login-banner__btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.cs-login-banner__btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.cs-login-banner__btn--login { background: var(--cs-dark); color: #fff; }
+.cs-login-banner__btn--login:hover { background: #1a1c28; color: #fff; }
+.cs-login-banner__btn--signup { background: #fff; color: var(--cs-dark); border: 1.5px solid var(--cs-dark); }
+.cs-login-banner__btn--signup:hover { background: var(--cs-dark); color: #fff; }
+
+/* ── How it works strip ── */
+.cs-how {
+  padding: 3.5rem 0;
+  background: #fff;
+  border-top: 1px solid var(--cs-border);
+}
+.cs-how__title {
+  font-family: "Abril Fatface", cursive;
+  font-size: 1.5rem; font-weight: 400;
+  color: var(--cs-dark); text-align: center; margin-bottom: 2.5rem;
+}
+.cs-how__step {
+  text-align: center;
+  padding: 0 1rem;
+}
+.cs-how__step__num {
+  width: 44px; height: 44px;
+  background: var(--cs-dark); color: #fff;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1rem;
+  margin: 0 auto 0.85rem;
+}
+.cs-how__step__title { font-weight: 700; font-size: 0.95rem; color: var(--cs-dark); margin-bottom: 0.35rem; }
+.cs-how__step__text { font-size: 0.85rem; color: var(--cs-muted); line-height: 1.55; }
+
+@media (max-width: 575px) {
+  .cs-hero { padding: 2.5rem 0 2.5rem; }
+  .cs-how__step { margin-bottom: 2rem; }
+  .cs-card__inner { padding: 1.25rem 1.1rem; min-height: 0; }
+  .cs-card__footer { margin-top: 1rem; padding-top: 1rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Hero ── -->
+<section class="cs-hero">
+  <div class="container">
+    <p class="cs-hero__kicker"><i class="fa fa-folder-open" aria-hidden="true"></i> My Grandfather's BOX</p>
+    <h1 class="cs-hero__title">Clinical case studies for every examinable condition</h1>
+    <p class="cs-hero__sub">Built to NMC standards. Each case walks you through a real patient scenario, applies NANDA care plan principles, and builds the clinical judgment you need for your licensure exam — and beyond.</p>
+    <div class="cs-hero__meta">
+      <span class="cs-hero__badge"><i class="fa fa-check-circle" aria-hidden="true"></i> NMC-aligned content</span>
+      <span class="cs-hero__badge"><i class="fa fa-lock" aria-hidden="true"></i> GH&#x20B5;2 per case study</span>
+      <span class="cs-hero__badge"><i class="fa fa-mobile" aria-hidden="true"></i> Read anytime</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Catalogue ── -->
+<section class="cs-catalogue">
+  <div class="container">
+
+    {% if not user.is_authenticated %}
+    <div class="cs-login-banner">
+      <i class="fa fa-info-circle" aria-hidden="true"></i>
+      <p class="cs-login-banner__text">Create a free account or log in to purchase and unlock case studies.</p>
+      <div class="cs-login-banner__btns">
+        <a href="{% url 'website:login' %}?next={% url 'website:public_case_studies' %}" class="cs-login-banner__btn cs-login-banner__btn--login"><i class="fa fa-sign-in"></i> Log in</a>
+        <a href="{% url 'website:signup' %}?next={% url 'website:public_case_studies' %}" class="cs-login-banner__btn cs-login-banner__btn--signup">Sign up free</a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="cs-catalogue__header">
+      <p class="cs-catalogue__count">{{ all_case_studies|length }} case stud{% if all_case_studies|length == 1 %}y{% else %}ies{% endif %} available</p>
+      <h2 class="cs-catalogue__title">Browse the full catalogue</h2>
+    </div>
+
+    {% if all_case_studies %}
+    <div class="cs-grid">
+      {% for cs in all_case_studies %}
+      <article class="cs-card">
+        <div class="cs-card__inner">
+          <div class="cs-card__head">
+            <div class="cs-card__icon">
+              <i class="fa fa-file-text-o" aria-hidden="true"></i>
+            </div>
+            {% if cs.id in owned_ids %}
+            <span class="cs-card__badge cs-card__badge--owned"><i class="fa fa-check-circle"></i> Owned</span>
+            {% else %}
+            <span class="cs-card__badge cs-card__badge--price">GH&#x20B5;{{ case_study_price }}.00</span>
+            {% endif %}
+          </div>
+          <h3 class="cs-card__title">{{ cs.title }}</h3>
+          {% if cs.scenario %}
+          <p class="cs-card__scenario">{{ cs.scenario|truncatechars:180 }}</p>
+          {% else %}
+          <p class="cs-card__scenario">A clinical scenario covering an examinable condition according to NMC standards. Purchase to access the full case and care plan.</p>
+          {% endif %}
+          <div class="cs-card__footer">
+            {% if cs.id in owned_ids %}
+            <a href="{% url 'website:case_studies' %}" class="cs-card__cta cs-card__cta--owned">
+              <i class="fa fa-book" aria-hidden="true"></i> Open in library
+            </a>
+            {% elif user.is_authenticated %}
+            <form method="post" action="{% url 'website:initiate_case_study_payment' cs.id %}">
+              {% csrf_token %}
+              <button type="submit" class="cs-card__cta cs-card__cta--buy">
+                <i class="fa fa-shopping-cart" aria-hidden="true"></i> Buy for GH&#x20B5;{{ case_study_price }}.00
+              </button>
+            </form>
+            {% else %}
+            <a href="{% url 'website:login' %}?next={% url 'website:public_case_studies' %}" class="cs-card__cta cs-card__cta--login">
+              <i class="fa fa-sign-in" aria-hidden="true"></i> Log in to purchase
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="cs-empty">
+      <div class="cs-empty__icon"><i class="fa fa-folder-open" aria-hidden="true"></i></div>
+      <h3 class="cs-empty__title">No case studies yet</h3>
+      <p class="cs-empty__text">We're adding new cases regularly. Check back soon!</p>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+<!-- ── How it works ── -->
+<section class="cs-how">
+  <div class="container">
+    <h2 class="cs-how__title">How it works</h2>
+    <div class="row justify-content-center">
+      <div class="col-md-3 col-sm-6">
+        <div class="cs-how__step">
+          <div class="cs-how__step__num">1</div>
+          <p class="cs-how__step__title">Create a free account</p>
+          <p class="cs-how__step__text">Sign up in seconds. Your library is always there when you log back in.</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="cs-how__step">
+          <div class="cs-how__step__num">2</div>
+          <p class="cs-how__step__title">Choose a case study</p>
+          <p class="cs-how__step__text">Browse examinable conditions and pick the ones you need to study.</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="cs-how__step">
+          <div class="cs-how__step__num">3</div>
+          <p class="cs-how__step__title">Pay GH&#x20B5;2 via Paystack</p>
+          <p class="cs-how__step__text">Secure mobile money or card payment. Instant confirmation.</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="cs-how__step">
+          <div class="cs-how__step__num">4</div>
+          <p class="cs-how__step__title">Read anytime</p>
+          <p class="cs-how__step__text">Access your case studies from your library on any device, any time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

@@ -147,6 +147,7 @@
                                             <ul id="navigation">
                                                 <li><a href="{% url 'website:home' %}">home</a></li>
                                                 <li><a href="{% url 'website:courses' %}">Courses</a></li>
+                                                <li><a href="{% url 'website:public_case_studies' %}">Case Studies</a></li>
                                                 <li><a href="{% url 'website:contact' %}">Contact</a></li>
                                                 {% if user.is_authenticated %}
                                                 <li class="d-lg-none auth-nav-item auth-nav-item--dashboard"><a href="{% url 'website:dashboard' %}">Dashboard</a></li>
@@ -195,6 +196,7 @@
                             <ul>
                                 <li><a href="{% url 'website:home' %}">Home</a></li>
                                 <li><a href="{% url 'website:courses' %}">Courses</a></li>
+                                <li><a href="{% url 'website:public_case_studies' %}">Case Studies</a></li>
                                 <li><a href="{% url 'website:contact' %}">Contact</a></li>
                             </ul>
                         </div>

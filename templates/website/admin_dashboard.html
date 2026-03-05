@@ -9,6 +9,7 @@
     <a href="{% url 'website:admin_add_question' %}"><i class="fa fa-plus-circle"></i> Add question</a>
     <a href="{% url 'website:admin_add_case_study' %}"><i class="fa fa-folder-open"></i> Add case study</a>
     <a href="{% url 'website:admin_add_books_slides' %}"><i class="fa fa-book"></i> Add books and slides</a>
+    <a href="{% url 'website:admin_content_supabase' %}"><i class="fa fa-database"></i> Case studies & Books</a>
     <a href="{% url 'website:admin_all_users' %}"><i class="fa fa-users"></i> All users</a>
     <a href="{% url 'website:admin_payments' %}"><i class="fa fa-credit-card"></i> Payments</a>
     <a href="{% url 'website:admin_inquiries_list' %}"><i class="fa fa-envelope"></i> Inquiries</a>
@@ -20,6 +21,7 @@
     <a href="{% url 'website:admin_add_question' %}" class="db-bottom__item"><i class="fa fa-plus-circle"></i> Add</a>
     <a href="{% url 'website:admin_add_case_study' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Case study</a>
     <a href="{% url 'website:admin_add_books_slides' %}" class="db-bottom__item"><i class="fa fa-book"></i> Books</a>
+    <a href="{% url 'website:admin_content_supabase' %}" class="db-bottom__item"><i class="fa fa-database"></i> Content</a>
     <a href="{% url 'website:admin_all_users' %}" class="db-bottom__item"><i class="fa fa-users"></i> Users</a>
     <a href="{% url 'website:admin_payments' %}" class="db-bottom__item"><i class="fa fa-credit-card"></i> Payments</a>
     <a href="{% url 'website:admin_inquiries_list' %}" class="db-bottom__item"><i class="fa fa-envelope"></i> Inquiries</a>
@@ -27,149 +29,204 @@
 
 {% block extra_css %}
 <style>
-/* Admin dashboard – mobile first, responsive */
-.adm-dashboard-wrap { max-width: 100%; min-width: 0; overflow-x: hidden; }
-.adm-hero { background: linear-gradient(135deg, var(--db-dark) 0%, #2d3142 100%); border-radius: 12px; padding: 1.25rem 1.25rem; margin-bottom: 1.25rem; color: #fff; word-wrap: break-word; }
-.adm-hero h2 { font-size: 1.2rem; font-weight: 700; margin: 0 0 0.25rem; letter-spacing: -0.02em; line-height: 1.3; }
-.adm-hero p { margin: 0; opacity: 0.9; font-size: 0.9rem; line-height: 1.4; }
-.adm-stats { display: grid; grid-template-columns: 1fr; gap: 0.75rem; margin-bottom: 1.25rem; }
-.adm-stat { background: var(--db-card); border: 1px solid var(--db-border); border-radius: 12px; padding: 1rem 1.1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; color: inherit; display: block; min-width: 0; }
-.adm-stat:hover { text-decoration: none; color: inherit; }
-.adm-action { text-decoration: none; }
-.adm-action:hover { text-decoration: none; }
-.adm-section__title a { text-decoration: none; }
-.adm-section__title a:hover { text-decoration: none; }
-.adm-stat:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
-.adm-stat__icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; margin-bottom: 0.5rem; }
-.adm-stat__icon--visits { background: #dbeafe; color: #2563eb; }
-.adm-stat__icon--users { background: #dcfce7; color: #16a34a; }
+/* ── Admin Dashboard – flat, clean, no gradients ── */
+.adm-wrap { max-width: 100%; min-width: 0; overflow-x: hidden; }
+
+/* Hero banner */
+.adm-hero {
+    background: #232637;
+    border-radius: 14px;
+    padding: 1.4rem 1.5rem;
+    margin-bottom: 1.5rem;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.adm-hero__icon {
+    width: 48px; height: 48px; flex-shrink: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+}
+.adm-hero__text h2 { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.2rem; letter-spacing: -0.01em; }
+.adm-hero__text p  { margin: 0; opacity: 0.75; font-size: 0.875rem; line-height: 1.4; }
+
+/* Stat grid */
+.adm-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+.adm-stat {
+    background: #fff;
+    border: 1.5px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 1rem 1rem 0.85rem;
+    text-decoration: none !important;
+    color: inherit;
+    display: block;
+    transition: border-color 0.2s, box-shadow 0.18s;
+}
+.adm-stat:hover { border-color: #c7c7c7; box-shadow: 0 4px 14px rgba(0,0,0,0.07); color: inherit; }
+.adm-stat__icon {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem;
+    margin-bottom: 0.6rem;
+}
+.adm-stat__icon--visits    { background: #dbeafe; color: #2563eb; }
+.adm-stat__icon--users     { background: #dcfce7; color: #16a34a; }
 .adm-stat__icon--questions { background: #fef3c7; color: #d97706; }
-.adm-stat__icon--cases { background: #e0e7ff; color: #4f46e5; }
-.adm-stat__icon--books { background: #fce7f3; color: #be185d; }
-.adm-stat__icon--payments { background: #d1fae5; color: #059669; }
+.adm-stat__icon--cases     { background: #ede9fe; color: #7c3aed; }
+.adm-stat__icon--books     { background: #fce7f3; color: #be185d; }
+.adm-stat__icon--payments  { background: #d1fae5; color: #059669; }
 .adm-stat__icon--inquiries { background: #e0f2fe; color: #0284c7; }
-.adm-stat__value { font-size: 1.35rem; font-weight: 700; color: var(--db-text); margin: 0 0 0.15rem; line-height: 1.2; }
-.adm-stat__label { font-size: 0.75rem; color: var(--db-muted); margin: 0; }
-.adm-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
-.adm-action { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 0.9rem; font-size: 0.85rem; font-weight: 600; border-radius: 10px; background: var(--db-dark); color: #fff; text-decoration: none !important; transition: background 0.2s, transform 0.1s; border: none; cursor: pointer; white-space: nowrap; }
-.adm-action:hover { background: var(--db-dark-hover); color: #fff; transform: translateY(-1px); text-decoration: none !important; }
-.adm-action i { font-size: 0.95rem; flex-shrink: 0; }
-.adm-section { margin-bottom: 1.25rem; min-width: 0; }
-.adm-section:last-child { margin-bottom: 0; }
+.adm-stat__value { font-size: 1.4rem; font-weight: 700; color: #1c1917; margin: 0 0 0.1rem; line-height: 1.15; }
+.adm-stat__label { font-size: 0.72rem; color: #78716c; margin: 0; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Quick-action strip */
+.adm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+.adm-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1.5px solid #232637;
+    background: #fff;
+    color: #232637;
+    text-decoration: none !important;
+    transition: background 0.18s, color 0.18s;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.adm-action:hover { background: #232637; color: #fff; text-decoration: none !important; }
+.adm-action i { font-size: 0.9rem; flex-shrink: 0; }
+
+/* Section cards */
 .adm-sections { display: flex; flex-direction: column; gap: 1.25rem; }
-.adm-section .db-card { padding: 1.25rem; }
-.adm-section__title { font-size: 1rem; font-weight: 700; margin: 0 0 0.75rem; color: var(--db-text); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
-.adm-section__title a { font-size: 0.85rem; font-weight: 600; }
-.adm-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--db-border); -webkit-overflow-scrolling: touch; }
-.adm-table { width: 100%; margin: 0; border-collapse: collapse; min-width: 280px; }
-.adm-table th { text-align: left; padding: 0.6rem 0.75rem; font-size: 0.7rem; font-weight: 600; color: var(--db-muted); text-transform: uppercase; letter-spacing: 0.04em; background: var(--db-bg); border-bottom: 1px solid var(--db-border); white-space: nowrap; }
-.adm-table td { padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--db-border); font-size: 0.85rem; }
-.adm-table td:first-child { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.adm-section { min-width: 0; }
+.adm-section .db-card { padding: 1.25rem; margin-bottom: 0; }
+
+.adm-section__title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0 0 0.85rem;
+    color: #1c1917;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.adm-section__title a {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #232637;
+    text-decoration: none;
+    text-transform: none;
+    letter-spacing: 0;
+    border-bottom: 1.5px solid #232637;
+    padding-bottom: 1px;
+}
+.adm-section__title a:hover { opacity: 0.7; }
+
+/* Table */
+.adm-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #e5e5e5; }
+.adm-table { width: 100%; margin: 0; border-collapse: collapse; min-width: 260px; }
+.adm-table th {
+    text-align: left;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #78716c;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #f9f9f9;
+    border-bottom: 1px solid #e5e5e5;
+    white-space: nowrap;
+}
+.adm-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; color: #1c1917; }
 .adm-table tbody tr:last-child td { border-bottom: 0; }
-.adm-table tbody tr:hover { background: rgba(0,0,0,0.02); }
-.adm-table .adm-table--muted { color: var(--db-muted); font-size: 0.8rem; }
-.adm-badge { display: inline-block; padding: 0.2em 0.45em; border-radius: 6px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+.adm-table tbody tr:hover { background: #fafafa; }
+.adm-table--muted { color: #78716c !important; font-size: 0.8rem !important; }
+
+/* Badges */
+.adm-badge { display: inline-block; padding: 0.18em 0.5em; border-radius: 5px; font-size: 0.68rem; font-weight: 700; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; }
 .adm-badge--completed { background: #dcfce7; color: #166534; }
-.adm-badge--pending { background: #fef3c7; color: #92400e; }
-.adm-badge--failed { background: #fee2e2; color: #991b1b; }
-.adm-badge--refunded { background: #e0e7ff; color: #3730a3; }
-.adm-empty { color: var(--db-muted); font-size: 0.85rem; padding: 1.25rem; text-align: center; }
+.adm-badge--pending   { background: #fef3c7; color: #92400e; }
+.adm-badge--failed    { background: #fee2e2; color: #991b1b; }
+.adm-badge--refunded  { background: #e0e7ff; color: #3730a3; }
 
-/* Small screens: center and improve positioning */
-@media (max-width: 767px) {
-    .adm-dashboard-wrap { width: 100%; max-width: 100%; margin: 0 auto; }
-    .adm-hero { text-align: center; padding: 1rem 1rem; margin-left: 0; margin-right: 0; }
-    .adm-hero h2 { font-size: 1.1rem; }
-    .adm-hero p { font-size: 0.85rem; }
-    .adm-stats { gap: 0.65rem; margin-bottom: 1rem; }
-    .adm-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-    }
-    .adm-action {
-        flex: 1 1 calc(50% - 0.25rem);
-        min-width: 0;
-        justify-content: center;
-        text-align: center;
-    }
-    .adm-sections { width: 100%; margin: 0 auto; }
-    .adm-section { width: 100%; }
-    .adm-section .db-card { margin-left: 0; margin-right: 0; }
-    .adm-section__title { justify-content: center; flex-wrap: wrap; text-align: center; gap: 0.5rem; }
-    .adm-section__title a { margin-top: 0.25rem; }
-}
-@media (max-width: 399px) {
-    .adm-action { min-width: 100%; }
-}
+.adm-empty { color: #78716c; font-size: 0.85rem; padding: 1.5rem; text-align: center; }
 
-/* Responsive breakpoints */
-@media (min-width: 400px) {
-    .adm-stats { grid-template-columns: repeat(2, 1fr); }
-}
-@media (min-width: 576px) {
-    .adm-hero { padding: 1.5rem 1.75rem; border-radius: 14px; margin-bottom: 1.5rem; }
-    .adm-hero h2 { font-size: 1.35rem; }
-    .adm-hero p { font-size: 0.95rem; }
-    .adm-stats { gap: 1rem; margin-bottom: 1.5rem; }
-    .adm-stat { padding: 1.25rem; }
-    .adm-stat__icon { width: 40px; height: 40px; font-size: 1.15rem; margin-bottom: 0.75rem; }
-    .adm-stat__value { font-size: 1.5rem; }
-    .adm-stat__label { font-size: 0.8rem; }
-    .adm-actions { gap: 0.75rem; margin-bottom: 1.5rem; }
-    .adm-action { padding: 0.6rem 1.1rem; font-size: 0.9rem; }
-    .adm-section { margin-bottom: 1.5rem; }
-    .adm-section .db-card { padding: 1.5rem; }
-    .adm-section__title { font-size: 1.05rem; margin-bottom: 1rem; }
-    .adm-section__title a { font-size: 0.9rem; }
-    .adm-table th { padding: 0.75rem 1rem; font-size: 0.8rem; }
-    .adm-table td { padding: 0.85rem 1rem; font-size: 0.9rem; }
-    .adm-table td:first-child { max-width: none; }
-    .adm-badge { font-size: 0.75rem; }
+/* ── Responsive ── */
+@media (min-width: 480px) {
+    .adm-stats { grid-template-columns: repeat(3, 1fr); gap: 0.85rem; }
 }
 @media (min-width: 768px) {
-    .adm-stats { grid-template-columns: repeat(3, 1fr); }
+    .adm-stats { grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
+    .adm-hero { padding: 1.6rem 2rem; }
+    .adm-hero__text h2 { font-size: 1.25rem; }
+    .adm-hero__icon { width: 52px; height: 52px; font-size: 1.4rem; }
+    .adm-section .db-card { padding: 1.5rem; }
+    .adm-sections { gap: 1.5rem; }
+    .adm-actions { gap: 0.65rem; margin-bottom: 1.75rem; }
+    .adm-action { padding: 0.55rem 1.05rem; font-size: 0.86rem; }
+    .adm-table th { padding: 0.65rem 1rem; }
+    .adm-table td { padding: 0.75rem 1rem; font-size: 0.875rem; }
 }
 @media (min-width: 992px) {
-    .adm-stats { grid-template-columns: repeat(3, 1fr); margin-bottom: 1.75rem; }
-    .adm-actions { margin-bottom: 1.75rem; }
-    .adm-section { margin-bottom: 1.75rem; }
-    .adm-section .db-card { padding: 1.5rem; }
+    .adm-stats { grid-template-columns: repeat(4, 1fr); }
+    .adm-stat__value { font-size: 1.55rem; }
 }
-@media (min-width: 1200px) {
-    .adm-stats { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (min-width: 576px) {
-    .adm-sections { gap: 1.5rem; }
+@media (max-width: 479px) {
+    .adm-hero { flex-direction: column; align-items: flex-start; gap: 0.75rem; padding: 1.1rem 1.15rem; }
+    .adm-action { flex: 1 1 calc(50% - 0.25rem); justify-content: center; }
+    .adm-section__title { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-    <div class="adm-dashboard-wrap">
+<div class="adm-wrap">
+
     <div class="adm-hero">
-        <h2>Welcome back, {{ user.get_short_name|default:user.email }}</h2>
-        <p>Manage questions, case studies, resources, users, and payments from here.</p>
+        <div class="adm-hero__icon"><i class="fa fa-tachometer" aria-hidden="true"></i></div>
+        <div class="adm-hero__text">
+            <h2>Welcome back, {{ user.get_short_name|default:user.email }}</h2>
+            <p>Manage questions, case studies, resources, users, and payments.</p>
+        </div>
     </div>
 
     <div class="adm-stats">
         <a href="{% url 'website:admin_dashboard' %}" class="adm-stat">
             <div class="adm-stat__icon adm-stat__icon--visits"><i class="fa fa-eye" aria-hidden="true"></i></div>
             <p class="adm-stat__value">{{ visits_24h }}</p>
-            <p class="adm-stat__label">Visits (24h)</p>
+            <p class="adm-stat__label">Visits 24h</p>
         </a>
         <a href="{% url 'website:admin_all_users' %}" class="adm-stat">
             <div class="adm-stat__icon adm-stat__icon--users"><i class="fa fa-users" aria-hidden="true"></i></div>
-            <p class="adm-stat__value">{{ user_count }}+</p>
-            <p class="adm-stat__label">Registered users</p>
+            <p class="adm-stat__value">{{ user_count }}</p>
+            <p class="adm-stat__label">Users</p>
         </a>
         <a href="{% url 'website:admin_questions_list' %}" class="adm-stat">
             <div class="adm-stat__icon adm-stat__icon--questions"><i class="fa fa-list-alt" aria-hidden="true"></i></div>
             <p class="adm-stat__value">{{ question_count }}</p>
-            <p class="adm-stat__label">Licensure exams</p>
+            <p class="adm-stat__label">Questions</p>
         </a>
         <a href="{% url 'website:admin_add_case_study' %}" class="adm-stat">
             <div class="adm-stat__icon adm-stat__icon--cases"><i class="fa fa-folder-open" aria-hidden="true"></i></div>
@@ -195,11 +252,11 @@
 
     <div class="adm-actions">
         <a href="{% url 'website:admin_add_question' %}" class="adm-action"><i class="fa fa-plus-circle"></i> Add question</a>
-        <a href="{% url 'website:admin_add_case_study' %}" class="adm-action"><i class="fa fa-folder-open"></i> Add case study</a>
-        <a href="{% url 'website:admin_add_books_slides' %}" class="adm-action"><i class="fa fa-book"></i> Add book or slide</a>
-        <a href="{% url 'website:admin_questions_list' %}" class="adm-action"><i class="fa fa-list-alt"></i> View questions</a>
-        <a href="{% url 'website:admin_payments' %}" class="adm-action"><i class="fa fa-credit-card"></i> Record payment</a>
-        <a href="{% url 'website:admin_inquiries_list' %}" class="adm-action"><i class="fa fa-envelope"></i> View inquiries</a>
+        <a href="{% url 'website:admin_add_case_study' %}" class="adm-action"><i class="fa fa-folder-open"></i> Case study</a>
+        <a href="{% url 'website:admin_add_books_slides' %}" class="adm-action"><i class="fa fa-book"></i> Book / slide</a>
+        <a href="{% url 'website:admin_questions_list' %}" class="adm-action"><i class="fa fa-list-alt"></i> Questions</a>
+        <a href="{% url 'website:admin_payments' %}" class="adm-action"><i class="fa fa-credit-card"></i> View payments</a>
+        <a href="{% url 'website:admin_inquiries_list' %}" class="adm-action"><i class="fa fa-envelope"></i> Inquiries</a>
     </div>
 
     <div class="adm-sections">
@@ -207,7 +264,7 @@
             <div class="db-card">
                 <h2 class="adm-section__title">
                     Recent signups
-                    <a href="{% url 'website:admin_all_users' %}">View all</a>
+                    <a href="{% url 'website:admin_all_users' %}">View all &rarr;</a>
                 </h2>
                 <div class="adm-table-wrap">
                     <table class="adm-table">
@@ -236,8 +293,8 @@
         <div class="adm-section">
             <div class="db-card">
                 <h2 class="adm-section__title">
-                    Question breakdown by programme & paper
-                    <a href="{% url 'website:admin_questions_list' %}">View questions</a>
+                    Question breakdown by programme &amp; paper
+                    <a href="{% url 'website:admin_questions_list' %}">View questions &rarr;</a>
                 </h2>
                 <div class="adm-table-wrap">
                     <table class="adm-table">
@@ -274,7 +331,7 @@
             <div class="db-card">
                 <h2 class="adm-section__title">
                     Recent payments
-                    <a href="{% url 'website:admin_payments' %}">View all</a>
+                    <a href="{% url 'website:admin_payments' %}">View all &rarr;</a>
                 </h2>
                 <div class="adm-table-wrap">
                     <table class="adm-table">
@@ -303,5 +360,5 @@
             </div>
         </div>
     </div>
-    </div>
+</div>
 {% endblock %}

@@ -4,7 +4,6 @@ Django settings for publishing_company project.
 
 from pathlib import Path
 import os
-import dj_database_url
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -13,24 +12,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables from .env file
 load_dotenv(BASE_DIR / '.env')
 
-# Quick-start development settings - unsuitable for production
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Controlled via environment so Vercel can run with DEBUG=False.
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+DEBUG = True
 
-ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1' , '.vercel.app']
+ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1', '.vercel.app']
 
-# CSRF and Security Settings for Production
+# CSRF and Security Settings
 CSRF_TRUSTED_ORIGINS = [
-    'https://scholarindexing.academicdigital.space',
-    'https://*.academicdigital.space',
-    'http://scholarindexing.academicdigital.space',
-    'http://*.academicdigital.space',
-    'https://doi.academicdigital.space',
-    'http://doi.academicdigital.space',
     'https://nurseshour.vercel.app',
     'http://nurseshour.vercel.app',
     'https://nurses-hour.vercel.app',
@@ -98,22 +89,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
-# Database
-# Priority:
-# 1. If DATABASE_URL is set, use it (Postgres/MySQL/etc.).
-# 2. Else if running on Vercel (VERCEL env var), use a writable SQLite DB in /tmp.
-# 3. Else (local dev), use SQLite in BASE_DIR.
-DATABASE_URL = os.getenv('DATABASE_URL')
-
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-    }
-elif os.getenv('VERCEL'):
+# Database - Using SQLite for Django's built-in tables (sessions, auth, etc.)
+# Supabase is used for application data sync via REST API (see supabase_sync.py)
+# On Vercel: use /tmp/db.sqlite3 (writable); locally: BASE_DIR/db.sqlite3
+if os.getenv('VERCEL'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -128,11 +107,38 @@ else:
         }
     }
 
-# Supabase Configuration (keys must be provided via environment variables)
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY')
-SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
+# Supabase Configuration
+# IMPORTANT: Set these as environment variables in production!
+# Get keys from: https://supabase.com/dashboard → Settings → API
+SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://plyqzvmtkdymnaxvipyu.supabase.co')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTMzMjAsImV4cCI6MjA4Nzk2OTMyMH0.26zvvdZa9x1ZOKtfDZfjXACmtMv3ssOsEXjc7P_qxAM')  # anon/public key
+SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjM5MzMyMCwiZXhwIjoyMDg3OTY5MzIwfQ.zhnP7XYrw5xslOQtkp1oeaGmUci4HsEdyysKjjbZSyU')  # service_role key (bypasses RLS)
 SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'project-files')
+# Bucket for case study file uploads (create it in Supabase Dashboard → Storage: name = case-studies, public)
+SUPABASE_STORAGE_BUCKET_CASE_STUDIES = os.getenv('SUPABASE_STORAGE_BUCKET_CASE_STUDIES', 'case-studies')
+# Bucket for books/slides file uploads (create it in Supabase Dashboard → Storage: name = book-slide, public)
+SUPABASE_STORAGE_BUCKET_BOOKS_SLIDES = os.getenv('SUPABASE_STORAGE_BUCKET_BOOKS_SLIDES', 'book-slide')
+# Sync signup/data to Supabase REST API (requires app_users table - see supabase_app_users.sql)
+SUPABASE_SYNC_ENABLED = True
+
+# Validate Supabase configuration on startup
+_key_len = len(SUPABASE_KEY or '')
+_svc_len = len(SUPABASE_SERVICE_KEY or '')
+if not SUPABASE_URL or not SUPABASE_KEY or not SUPABASE_SERVICE_KEY:
+    print("\n" + "=" * 80)
+    print("WARNING: Supabase configuration is incomplete!")
+    print("=" * 80)
+    print("SUPABASE_URL:", "OK" if SUPABASE_URL else "MISSING")
+    print("SUPABASE_KEY:", "OK" if _key_len > 100 else "MISSING or INVALID (length: {})".format(_key_len))
+    print("SUPABASE_SERVICE_KEY:", "OK" if _svc_len > 100 else "MISSING or INVALID (length: {})".format(_svc_len))
+    print("\nTo fix: set SUPABASE_KEY and SUPABASE_SERVICE_KEY in .env or as environment variables.")
+    print("=" * 80 + "\n")
+elif _key_len > 100 and _svc_len > 100:
+    print("[Supabase Config] OK - Connected to {} (anon: {} chars, service: {} chars)".format(
+        SUPABASE_URL, _key_len, _svc_len))
+else:
+    print("[Supabase Config] WARNING - Keys may be invalid (anon: {} chars, service: {} chars)".format(
+        _key_len, _svc_len))
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -175,7 +181,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or 'noreply@example.com'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Auth redirects (for @login_required and similar)
+# Auth redirects
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
@@ -186,3 +192,7 @@ ADMIN_INITIAL_PASSWORD = 'Nursehub2026@'
 
 # Notify this email when a new contact/inquiry is submitted
 INQUIRY_NOTIFY_EMAIL = os.getenv('INQUIRY_NOTIFY_EMAIL', 'amoasamoahransford17@gmail.com')
+
+
+PAYSTACK_SECRET_KEY ="sk_test_7c773f96c11b14401a005855684ed93ac9042154"
+PAYSTACK_PUBLIC_KEY ="pk_test_81ab70cdc3b06eecabcfac2b3f32ca03f1ecb4ee"

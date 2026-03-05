@@ -9,6 +9,7 @@
     <a href="{% url 'website:admin_add_question' %}"><i class="fa fa-plus-circle"></i> Add question</a>
     <a href="{% url 'website:admin_add_case_study' %}"><i class="fa fa-folder-open"></i> Add case study</a>
     <a href="{% url 'website:admin_add_books_slides' %}"><i class="fa fa-book"></i> Add books and slides</a>
+    <a href="{% url 'website:admin_content_supabase' %}"><i class="fa fa-database"></i> Case studies & Books</a>
     <a href="{% url 'website:admin_all_users' %}"><i class="fa fa-users"></i> All users</a>
     <a href="{% url 'website:admin_payments' %}" class="db--active"><i class="fa fa-credit-card"></i> Payments</a>
     <a href="{% url 'website:admin_inquiries_list' %}"><i class="fa fa-envelope"></i> Inquiries</a>
@@ -20,70 +21,51 @@
     <a href="{% url 'website:admin_add_question' %}" class="db-bottom__item"><i class="fa fa-plus-circle"></i> Add</a>
     <a href="{% url 'website:admin_add_case_study' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Case study</a>
     <a href="{% url 'website:admin_add_books_slides' %}" class="db-bottom__item"><i class="fa fa-book"></i> Books</a>
+    <a href="{% url 'website:admin_content_supabase' %}" class="db-bottom__item"><i class="fa fa-database"></i> Content</a>
     <a href="{% url 'website:admin_all_users' %}" class="db-bottom__item"><i class="fa fa-users"></i> Users</a>
     <a href="{% url 'website:admin_payments' %}" class="db-bottom__item db--active"><i class="fa fa-credit-card"></i> Payments</a>
     <a href="{% url 'website:admin_inquiries_list' %}" class="db-bottom__item"><i class="fa fa-envelope"></i> Inquiries</a>
 {% endblock %}
 
 {% block content %}
-    <div class="row">
-        <div class="col-lg-5">
-            <div class="db-card db-card--form" style="margin-bottom: 1.5rem;">
-                <h2 class="db-card__title">Add payment</h2>
-                <p class="db-card__text" style="margin-bottom: 1rem;">Record a payment. Saved to Django and synced to Supabase.</p>
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 8px; margin-bottom: 1rem;">
-                            {{ message }}
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-                <form method="post" class="db-form db-form--grid">
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div class="form-group {% if field.name == 'description' %}form-group--full{% endif %}">
-                            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
-                            {{ field }}
-                            {% if field.errors %}<div class="invalid-feedback">{{ field.errors.0 }}</div>{% endif %}
-                        </div>
-                    {% endfor %}
-                    <div class="form-group form-group--full">
-                        <button type="submit" class="btn-save">Save payment</button>
-                    </div>
-                </form>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 8px; margin-bottom: 1rem;">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-        </div>
-        <div class="col-lg-7">
-            <div class="db-card db-card--form">
-                <h2 class="db-card__title">Recent payments</h2>
-                <div class="table-responsive">
-                    <table class="table table-sm" style="margin: 0;">
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for p in payments %}
-                            <tr>
-                                <td>{{ p.user_email|default:"—" }}</td>
-                                <td>{{ p.amount }}</td>
-                                <td>{{ p.get_status_display }}</td>
-                                <td>{{ p.created_at|date:"M j, Y" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="4">No payments yet.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        {% endfor %}
+    {% endif %}
+    <div class="db-card">
+        <h2 class="db-card__title">All payments</h2>
+        <p class="db-card__text" style="margin-bottom: 1.25rem;">Payments are recorded automatically from case study purchases (Paystack) and synced to Supabase.</p>
+        <div class="table-responsive">
+            <table class="table table-sm" style="margin: 0;">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Description</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in payments %}
+                    <tr>
+                        <td>{{ p.user_email|default:"—" }}</td>
+                        <td>{{ p.amount }}</td>
+                        <td>{{ p.get_status_display }}</td>
+                        <td>{{ p.description|default:"—"|truncatechars:40 }}</td>
+                        <td>{{ p.created_at|date:"M j, Y H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5">No payments recorded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 {% endblock %}

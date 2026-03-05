@@ -9,6 +9,7 @@
     <a href="{% url 'website:admin_add_question' %}"><i class="fa fa-plus-circle"></i> Add question</a>
     <a href="{% url 'website:admin_add_case_study' %}"><i class="fa fa-folder-open"></i> Add case study</a>
     <a href="{% url 'website:admin_add_books_slides' %}"><i class="fa fa-book"></i> Add books and slides</a>
+    <a href="{% url 'website:admin_content_supabase' %}"><i class="fa fa-database"></i> Case studies & Books</a>
     <a href="{% url 'website:admin_all_users' %}"><i class="fa fa-users"></i> All users</a>
     <a href="{% url 'website:admin_payments' %}"><i class="fa fa-credit-card"></i> Payments</a>
     <a href="{% url 'website:admin_inquiries_list' %}" class="db--active"><i class="fa fa-envelope"></i> Inquiries</a>
@@ -20,6 +21,7 @@
     <a href="{% url 'website:admin_add_question' %}" class="db-bottom__item"><i class="fa fa-plus-circle"></i> Add</a>
     <a href="{% url 'website:admin_add_case_study' %}" class="db-bottom__item"><i class="fa fa-folder-open"></i> Case study</a>
     <a href="{% url 'website:admin_add_books_slides' %}" class="db-bottom__item"><i class="fa fa-book"></i> Books</a>
+    <a href="{% url 'website:admin_content_supabase' %}" class="db-bottom__item"><i class="fa fa-database"></i> Content</a>
     <a href="{% url 'website:admin_all_users' %}" class="db-bottom__item"><i class="fa fa-users"></i> Users</a>
     <a href="{% url 'website:admin_payments' %}" class="db-bottom__item"><i class="fa fa-credit-card"></i> Payments</a>
     <a href="{% url 'website:admin_inquiries_list' %}" class="db-bottom__item db--active"><i class="fa fa-envelope"></i> Inquiries</a>
@@ -66,7 +68,7 @@
                         <td class="inq-msg" title="{{ i.message }}">{{ i.message }}</td>
                         <td>{{ i.created_at|date:"M j, Y H:i" }}</td>
                         <td class="inq-replied">{% if i.replied_at %}Yes · {{ i.replied_at|date:"M j" }}{% else %}—{% endif %}</td>
-                        <td><a href="{% url 'website:admin_inquiry_reply' i.pk %}" class="btn-reply"><i class="fa fa-reply"></i> Reply</a></td>
+                        <td><a href="{% url 'website:admin_inquiry_reply_supabase' i.id %}" class="btn-reply"><i class="fa fa-reply"></i> Reply</a></td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="7" class="inq-empty">No inquiries yet.</td></tr>

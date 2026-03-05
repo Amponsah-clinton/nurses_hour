@@ -198,6 +198,14 @@ class AdminMCQForm(forms.ModelForm):
 
 
 class AdminCaseStudyForm(forms.ModelForm):
+    """Case study form with optional file upload to Supabase Storage bucket (case-studies)."""
+    upload_file = forms.FileField(
+        required=False,
+        label='Or upload a file (optional)',
+        help_text='Upload PDF, DOC, or image. Stored in Supabase bucket: case-studies. If set, this overrides the URL below.',
+        widget=forms.FileInput(attrs={'class': 'form-control-file', 'accept': '.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp'}),
+    )
+
     class Meta:
         model = CaseStudy
         fields = ['title', 'scenario', 'content', 'file_url']
@@ -205,18 +213,26 @@ class AdminCaseStudyForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Case study title'}),
             'scenario': forms.Textarea(attrs={'rows': 4, 'class': 'form-control', 'placeholder': 'Scenario or brief'}),
             'content': forms.Textarea(attrs={'rows': 6, 'class': 'form-control', 'placeholder': 'Full content'}),
-            'file_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://... (Supabase case_study bucket or external link)'}),
+            'file_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://... (or leave blank and upload a file above)'}),
         }
 
 
 class AdminBookSlideForm(forms.ModelForm):
+    """Book/slide form with optional file upload to Supabase Storage bucket (book-slide)."""
+    upload_file = forms.FileField(
+        required=False,
+        label='Or upload a file (optional)',
+        help_text='Upload PDF, DOC, or image. Stored in Supabase bucket: book-slide. If set, this overrides the URL below.',
+        widget=forms.FileInput(attrs={'class': 'form-control-file', 'accept': '.pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp'}),
+    )
+
     class Meta:
         model = BookOrSlide
         fields = ['title', 'description', 'file_url', 'kind']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Title'}),
             'description': forms.Textarea(attrs={'rows': 2, 'class': 'form-control', 'placeholder': 'Description (optional)'}),
-            'file_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://... (Supabase Storage or external link)'}),
+            'file_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://... (or leave blank and upload a file above)'}),
             'kind': forms.Select(attrs={'class': 'form-control'}),
         }
 
