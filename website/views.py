@@ -245,9 +245,38 @@ def login_view(request):
                 if not email:
                     form.add_error(None, 'No account found with this phone number.')
                     return render(request, 'website/login.html', {'form': form})
+            # Admin fallback: if this is the configured admin email, allow login via Django (settings password)
+            admin_email = getattr(settings, 'ADMIN_EMAIL', None)
+            admin_password = getattr(settings, 'ADMIN_INITIAL_PASSWORD', None)
+            if admin_email and (email or '').strip().lower() == (admin_email or '').strip().lower():
+                user = User.objects.filter(email__iexact=email).first()
+                if not user and admin_password:
+                    user = User.objects.create_user(
+                        username=email,
+                        email=email,
+                        password=admin_password,
+                        first_name=(admin_email.split('@')[0] or 'Admin'),
+                    )
+                    UserProfile.objects.get_or_create(user=user, defaults={})
+                if user and admin_password and user.check_password(admin_password):
+                    auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                    messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
+                    return redirect_to_dashboard(user)
+                if user and user.check_password(password):
+                    auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                    messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
+                    return redirect_to_dashboard(user)
+            # Supabase Auth for everyone else (and admin if Supabase has them)
             from .supabase_auth import sign_in_supabase
             supabase_user, err = sign_in_supabase(email, password)
             if err:
+                # If admin and we have Django user with admin password, try that once more (in case Supabase was down)
+                if admin_email and (email or '').strip().lower() == (admin_email or '').strip().lower():
+                    user = User.objects.filter(email__iexact=email).first()
+                    if user and admin_password and user.check_password(admin_password):
+                        auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                        messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
+                        return redirect_to_dashboard(user)
                 form.add_error(None, 'Invalid email/phone or password.')
                 return render(request, 'website/login.html', {'form': form})
             meta = getattr(supabase_user, 'user_metadata', None) or {}
