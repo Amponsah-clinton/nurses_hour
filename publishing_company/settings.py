@@ -40,12 +40,9 @@ CSRF_USE_SESSIONS = False
 SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
-# On Vercel, use signed-cookie sessions so login/logout work without the session DB table
-if os.getenv('VERCEL'):
-    SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
-    SESSION_SAVE_EVERY_REQUEST = True
-    # Let WhiteNoise read static files directly from css/, js/, etc. without needing collectstatic
-    WHITENOISE_USE_FINDERS = True
+# Use signed-cookie sessions (no DB table needed; works on Vercel and locally)
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_SAVE_EVERY_REQUEST = True
 
 # Application definition
 INSTALLED_APPS = [
@@ -90,15 +87,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
-# Database - Using SQLite for Django's built-in tables (sessions, auth, etc.)
-# Supabase is used for application data sync via REST API (see supabase_sync.py)
-# On Vercel: use /tmp/db.sqlite3 (writable); locally: BASE_DIR/db.sqlite3
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3',
+# Database
+# If DATABASE_URL is set (e.g. Supabase PostgreSQL on Vercel), use it.
+# Otherwise fall back to local SQLite for development.
+_db_url = os.getenv('DATABASE_URL')
+if _db_url:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(
+            _db_url,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Supabase Configuration
 # IMPORTANT: Set these as environment variables in production!
