@@ -133,10 +133,15 @@ else:
             print(f"[DB] DATABASE_URL parse failed: {_db_err} — using SQLite")
 
 if not _use_postgres:
-    _db_name = (
-        os.getenv('DATABASE_PATH')
-        or ('/tmp/db.sqlite3' if os.getenv('VERCEL') else str(BASE_DIR / 'db.sqlite3'))
-    )
+    # On Vercel we require Supabase Postgres — no SQLite (ephemeral, not shared).
+    if os.getenv('VERCEL'):
+        raise RuntimeError(
+            'On Vercel, Django must use Supabase Postgres. Set in Vercel → Settings → Environment Variables:\n'
+            '  Option A: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME (optional: DB_PORT=6543)\n'
+            '  Option B: DATABASE_URL=postgresql://user:pass@host:6543/postgres\n'
+            'Use Supabase Dashboard → Settings → Database for the connection string (Transaction Pooler, port 6543).'
+        )
+    _db_name = os.getenv('DATABASE_PATH') or str(BASE_DIR / 'db.sqlite3')
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
