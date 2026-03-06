@@ -229,8 +229,12 @@ def login_view(request):
             if '@' in email_or_phone:
                 user = User.objects.filter(email=email_or_phone).first()
             else:
-                from .models import UserProfile
-                profile = UserProfile.objects.filter(phone=email_or_phone).select_related('user').first()
+                # Phone login – fail gracefully if UserProfile table is missing (e.g. on fresh Vercel deploy)
+                try:
+                    from .models import UserProfile
+                    profile = UserProfile.objects.filter(phone=email_or_phone).select_related('user').first()
+                except OperationalError:
+                    profile = None
                 if profile:
                     user = profile.user
             if user and user.check_password(password):
