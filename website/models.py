@@ -163,14 +163,14 @@ class ResourceBookmark(models.Model):
 
 
 class PracticeSession(models.Model):
-    """A practice run (set of MCQ questions) for a student."""
+    """A practice run (set of MCQ questions) for a student. questions = list of Supabase mcq_questions ids."""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='practice_sessions')
     program = models.CharField(max_length=10, blank=True, default='')
     paper = models.CharField(max_length=40, blank=True, default='')
     timed = models.BooleanField(default=False, help_text='If true, student practiced under timed conditions (50s per question).')
     total_questions = models.PositiveIntegerField()
     correct_count = models.PositiveIntegerField(default=0)
-    questions = models.JSONField(default=list, help_text='List of MCQQuestion IDs for this session in order.')
+    questions = models.JSONField(default=list, help_text='List of Supabase mcq_questions ids (str or int) in order.')
     started_at = models.DateTimeField(default=timezone.now)
     finished_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -180,10 +180,14 @@ class PracticeSession(models.Model):
 
 
 class PracticeAnswer(models.Model):
-    """An answer to a single MCQ question within a practice session."""
+    """An answer to a single MCQ question within a practice session. Question can be from Supabase (no FK)."""
     session = models.ForeignKey(PracticeSession, on_delete=models.CASCADE, related_name='answers')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='practice_answers')
-    question = models.ForeignKey(MCQQuestion, on_delete=models.CASCADE, related_name='practice_answers')
+    question = models.ForeignKey(MCQQuestion, on_delete=models.CASCADE, related_name='practice_answers', null=True, blank=True)
+    question_supabase_id = models.CharField(max_length=64, blank=True, help_text='Supabase mcq_questions id when question is from Supabase.')
+    question_text = models.TextField(blank=True, help_text='Snapshot for review when question is from Supabase.')
+    correct_answer = models.CharField(max_length=1, blank=True)
+    answer_explanation = models.TextField(blank=True)
     chosen_answer = models.CharField(max_length=1, choices=MCQQuestion.CORRECT_CHOICES)
     is_correct = models.BooleanField(default=False)
     answered_at = models.DateTimeField(auto_now_add=True)
@@ -191,5 +195,5 @@ class PracticeAnswer(models.Model):
 
     class Meta:
         ordering = ['order_index']
-        unique_together = ('session', 'question')
+        unique_together = ('session', 'order_index')
 

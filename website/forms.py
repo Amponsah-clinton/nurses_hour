@@ -74,6 +74,7 @@ class SignUpForm(forms.Form):
 
     def clean_email(self):
         email = self.cleaned_data.get('email', '').strip().lower()
+        # Supabase is source of truth; we still check Django to avoid unnecessary Supabase call
         if User.objects.filter(email=email).exists():
             raise ValidationError('An account with this email already exists.')
         return email

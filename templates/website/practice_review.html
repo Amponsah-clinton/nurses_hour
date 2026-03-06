@@ -151,7 +151,7 @@
                         </div>
                     </div>
                     <div style="font-size:0.95rem;line-height:1.6;margin-bottom:0.5rem;">
-                        {{ a.question.question_text }}
+                        {% firstof a.question_text a.question.question_text %}
                     </div>
                     <div style="font-size:0.85rem;margin-bottom:0.4rem;">
                         <strong>Your answer:</strong>
@@ -161,13 +161,13 @@
                         &nbsp;·&nbsp;
                         <strong>Correct answer:</strong>
                         <span style="color:#166534;">
-                            {{ a.question.correct_answer }}
+                            {% firstof a.correct_answer a.question.correct_answer %}
                         </span>
                     </div>
-                    {% if a.question.answer_explanation %}
+                    {% if a.answer_explanation or a.question.answer_explanation %}
                     <div style="font-size:0.85rem;color:#4b5563;background:#f9fafb;border-radius:8px;padding:0.6rem 0.8rem;">
                         <strong>Why this answer is correct:</strong><br>
-                        {{ a.question.answer_explanation }}
+                        {% firstof a.answer_explanation a.question.answer_explanation %}
                     </div>
                     {% endif %}
                 </div>

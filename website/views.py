@@ -196,19 +196,32 @@ def signup(request):
         return redirect('website:home')
     form = SignUpForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        email = form.cleaned_data['email'].lower()
-        name = form.cleaned_data['name'] or ''
+        email = form.cleaned_data['email'].lower().strip()
+        name = (form.cleaned_data.get('name') or '').strip()
         password = form.cleaned_data['password']
-        phone = form.cleaned_data.get('phone') or ''
-        program = form.cleaned_data.get('program') or ''
-        user = User.objects.create_user(
-            username=email,
+        phone = (form.cleaned_data.get('phone') or '').strip()
+        program = (form.cleaned_data.get('program') or '').strip()
+        from .supabase_auth import sign_up_supabase
+        supabase_user, err = sign_up_supabase(email, password, full_name=name or None, phone=phone or None, program=program or None)
+        if err:
+            form.add_error(None, err)
+            return render(request, 'website/signup.html', {'form': form})
+        meta = getattr(supabase_user, 'user_metadata', None) or {}
+        user, created = User.objects.get_or_create(
             email=email,
-            first_name=name,
-            password=password,
+            defaults={'username': email, 'first_name': name or email}
         )
+        if created:
+            user.set_password(password)
+            user.save()
+        else:
+            user.first_name = name or user.first_name
+            user.save(update_fields=['first_name'])
         from .models import UserProfile
-        UserProfile.objects.create(user=user, phone=phone, program=program)
+        profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'phone': phone, 'program': program})
+        profile.phone = phone or meta.get('phone') or profile.phone
+        profile.program = program or meta.get('program') or profile.program
+        profile.save(update_fields=['phone', 'program'])
         from .supabase_sync import save_user_to_supabase
         save_user_to_supabase(user)
         auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
@@ -223,20 +236,42 @@ def login_view(request):
     form = LoginForm(request.POST or None)
     if request.method == 'POST':
         if form.is_valid():
-            email_or_phone = form.cleaned_data['email_or_phone']
+            email_or_phone = (form.cleaned_data['email_or_phone'] or '').strip()
             password = form.cleaned_data['password']
-            user = None
-            if '@' in email_or_phone:
-                user = User.objects.filter(email=email_or_phone).first()
-            else:
-                profile = UserProfile.objects.filter(phone=email_or_phone).select_related('user').first()
-                if profile:
-                    user = profile.user
-            if user and user.check_password(password):
-                auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
-                return redirect_to_dashboard(user)
-            form.add_error(None, 'Invalid email/phone or password.')
+            email = email_or_phone
+            if '@' not in email_or_phone:
+                from .supabase_sync import get_app_user_email_by_phone
+                email, _ = get_app_user_email_by_phone(email_or_phone)
+                if not email:
+                    form.add_error(None, 'No account found with this phone number.')
+                    return render(request, 'website/login.html', {'form': form})
+            from .supabase_auth import sign_in_supabase
+            supabase_user, err = sign_in_supabase(email, password)
+            if err:
+                form.add_error(None, 'Invalid email/phone or password.')
+                return render(request, 'website/login.html', {'form': form})
+            meta = getattr(supabase_user, 'user_metadata', None) or {}
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'username': email,
+                    'first_name': (meta.get('full_name') or email),
+                }
+            )
+            if created:
+                user.set_password(password)
+                user.save()
+            profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'program': meta.get('program') or ''})
+            if meta.get('phone'):
+                profile.phone = meta.get('phone')
+            if meta.get('program'):
+                profile.program = meta.get('program')
+            profile.save(update_fields=['phone', 'program'])
+            from .supabase_sync import save_user_to_supabase
+            save_user_to_supabase(user)
+            auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
+            return redirect_to_dashboard(user)
         else:
             form.add_error(None, 'Please correct the errors below.')
     return render(request, 'website/login.html', {'form': form})
@@ -300,31 +335,32 @@ def practice(request):
         except ValueError:
             num_questions = 10
         num_questions = max(1, min(num_questions, 50))
-        # Build candidate questions, excluding ones the user has already answered
-        answered_ids = PracticeAnswer.objects.filter(user=request.user).values_list('question_id', flat=True)
-        base_qs = MCQQuestion.objects.all()
-        if program:
-            base_qs = base_qs.filter(program=program)
-        if paper:
-            base_qs = base_qs.filter(paper=paper)
-
-        qs = base_qs
-        if answered_ids:
-            qs = qs.exclude(id__in=answered_ids)
-        qs = qs.order_by('?')
-        total_available = qs.count()
-
+        # Fetch questions from Supabase; filter by program/paper
+        from .supabase_sync import fetch_mcq_questions_from_supabase
+        all_questions, fetch_err = fetch_mcq_questions_from_supabase(order='created_at.desc', program=program or None, paper=paper or None)
+        if fetch_err:
+            messages.error(request, f'Could not load questions: {fetch_err}')
+            return redirect('website:practice')
+        # Exclude already-answered Supabase question ids
+        answered_supabase_ids = set(
+            PracticeAnswer.objects.filter(user=request.user)
+            .exclude(question_supabase_id='')
+            .values_list('question_supabase_id', flat=True)
+        )
+        candidate = [q for q in all_questions if str(q.get('id')) not in answered_supabase_ids]
+        import random
+        random.shuffle(candidate)
+        total_available = len(candidate)
         if total_available == 0:
-            # If the user has answered everything, fall back to repeating questions
-            total_all = base_qs.count()
-            if total_all == 0:
+            if not all_questions:
                 messages.info(request, 'No questions are available yet for this paper. Please check back soon.')
                 return redirect('website:practice')
-            qs = base_qs.order_by('?')
-            total_available = total_all
+            candidate = list(all_questions)
+            random.shuffle(candidate)
+            total_available = len(candidate)
             messages.info(request, 'You have answered all existing questions for this paper. We will now repeat questions for extra practice.')
         take = min(num_questions, total_available)
-        question_ids = list(qs.values_list('id', flat=True)[:take])
+        question_ids = [str(candidate[i]['id']) for i in range(take)]
         session = PracticeSession.objects.create(
             user=request.user,
             program=program,
@@ -353,7 +389,7 @@ def practice(request):
 
 @login_required
 def practice_session_question(request, session_id, index):
-    """Show a single question within a practice session and record the answer."""
+    """Show a single question within a practice session (question from Supabase) and record the answer."""
     session = get_object_or_404(PracticeSession, id=session_id, user=request.user)
     questions = session.questions or []
     total = len(questions)
@@ -365,28 +401,35 @@ def practice_session_question(request, session_id, index):
         index = 1
     if index < 1 or index > total:
         return redirect('website:practice_review', session_id=session.id)
-    question_id = questions[index - 1]
-    question = get_object_or_404(MCQQuestion, id=question_id)
+    question_supabase_id = str(questions[index - 1])
+    from .supabase_sync import fetch_mcq_question_by_id_supabase
+    question_dict, err = fetch_mcq_question_by_id_supabase(question_supabase_id)
+    if err or not question_dict:
+        messages.error(request, 'Question could not be loaded.')
+        return redirect('website:practice')
     if request.method == 'POST':
         chosen = (request.POST.get('answer') or '').strip().upper()
         if chosen not in dict(MCQQuestion.CORRECT_CHOICES):
             messages.error(request, 'Please select an answer before continuing.')
             return redirect('website:practice_session_question', session_id=session.id, index=index)
-        is_correct = (chosen == question.correct_answer)
+        correct_ans = (question_dict.get('correct_answer') or 'A').strip().upper()[:1]
+        is_correct = (chosen == correct_ans)
         answer, created = PracticeAnswer.objects.update_or_create(
             session=session,
-            question=question,
+            order_index=index,
             defaults={
                 'user': request.user,
+                'question': None,
+                'question_supabase_id': question_supabase_id,
+                'question_text': question_dict.get('question_text') or '',
+                'correct_answer': correct_ans,
+                'answer_explanation': question_dict.get('answer_explanation') or '',
                 'chosen_answer': chosen,
                 'is_correct': is_correct,
-                'order_index': index,
             },
         )
-        # Update session score
         correct_count = PracticeAnswer.objects.filter(session=session, is_correct=True).count()
         session.correct_count = correct_count
-        # Mark finished when last question is answered
         if index == total and session.finished_at is None:
             session.finished_at = timezone.now()
         session.save(update_fields=['correct_count', 'finished_at'])
@@ -397,6 +440,18 @@ def practice_session_question(request, session_id, index):
         if index >= total:
             return redirect('website:practice_review', session_id=session.id)
         return redirect('website:practice_session_question', session_id=session.id, index=index + 1)
+    # Build a simple object for template (same attributes as before)
+    class QuestionObj:
+        pass
+    question = QuestionObj()
+    question.id = question_supabase_id
+    question.question_text = question_dict.get('question_text') or ''
+    question.option_a = question_dict.get('option_a') or ''
+    question.option_b = question_dict.get('option_b') or ''
+    question.option_c = question_dict.get('option_c') or ''
+    question.option_d = question_dict.get('option_d') or ''
+    question.correct_answer = (question_dict.get('correct_answer') or 'A').strip().upper()[:1]
+    question.answer_explanation = question_dict.get('answer_explanation') or ''
     progress_pct = int((index / float(total)) * 100)
     context = {
         'session': session,
@@ -412,7 +467,7 @@ def practice_session_question(request, session_id, index):
 
 @login_required
 def practice_review(request, session_id):
-    """Review all questions and answers for a completed practice session."""
+    """Review all questions and answers for a completed practice session (Supabase or legacy)."""
     session = get_object_or_404(PracticeSession, id=session_id, user=request.user)
     answers = PracticeAnswer.objects.filter(session=session).select_related('question').order_by('order_index')
     total = session.total_questions
@@ -831,13 +886,29 @@ def admin_mcq_import_template(request):
     return response
 
 
+def _mcq_payload_from_row(row):
+    """Build Supabase MCQ payload dict from a row (JSON object or CSV row)."""
+    return {
+        'question_text': (row.get('question_text') or '').strip(),
+        'option_a': (row.get('option_a') or '').strip(),
+        'option_b': (row.get('option_b') or '').strip(),
+        'option_c': (row.get('option_c') or '').strip() or None,
+        'option_d': (row.get('option_d') or '').strip() or None,
+        'correct_answer': (row.get('correct_answer') or 'A').strip().upper()[:1] or 'A',
+        'answer_explanation': (row.get('answer_explanation') or '').strip() or None,
+        'topic': (row.get('topic') or '').strip() or None,
+        'program': (row.get('program') or '').strip() or None,
+        'paper': (row.get('paper') or '').strip() or None,
+    }
+
+
 @login_required
 @admin_required
 def admin_add_question(request):
-    from .supabase_sync import save_mcq_to_supabase
+    """Add questions to Supabase only (single or bulk JSON/CSV)."""
+    from .supabase_sync import add_mcq_to_supabase
     form = AdminMCQForm(request.POST or None)
     if request.method == 'POST':
-        # Bulk import from JSON
         if request.POST.get('bulk_type') == 'json':
             raw = (request.POST.get('bulk_json') or '').strip()
             if not raw:
@@ -847,34 +918,25 @@ def admin_add_question(request):
                     data = json.loads(raw)
                     if not isinstance(data, list):
                         data = [data]
-                    created = skipped = failed = 0
+                    created = failed = 0
                     for item in data:
-                        if not isinstance(item, dict):
+                        if not isinstance(item, dict) or not (item.get('question_text') or '').strip():
                             continue
-                        kwargs = _create_mcq_from_row(item)
-                        if _mcq_exists(kwargs):
-                            skipped += 1
-                            continue
-                        obj = MCQQuestion.objects.create(**kwargs)
-                        ok, err = save_mcq_to_supabase(obj)
-                        if ok:
+                        payload = _mcq_payload_from_row(item)
+                        _, err = add_mcq_to_supabase(payload)
+                        if err is None:
                             created += 1
                         else:
                             failed += 1
-                            messages.warning(request, f'Question saved locally but Supabase failed: {err}')
-                    msg = f'Imported {created} question(s) from JSON.'
-                    if skipped:
-                        msg += f' Skipped {skipped} duplicate(s).'
+                            messages.warning(request, f'Supabase failed: {err}')
+                    msg = f'Imported {created} question(s) to Supabase.'
                     if failed:
-                        msg += f' {failed} failed to reach Supabase (see warnings above).'
+                        msg += f' {failed} failed.'
                     messages.success(request, msg)
                     return redirect('website:admin_questions_list')
                 except json.JSONDecodeError as e:
                     messages.error(request, f'Invalid JSON: {e}')
-                except ValueError as e:
-                    messages.error(request, str(e))
             return render(request, 'website/admin_add_question.html', {'form': form, 'bulk_json': raw})
-        # Bulk import from CSV (textarea or file)
         if request.POST.get('bulk_type') == 'csv':
             raw = request.POST.get('bulk_csv_text', '').strip()
             if request.FILES.get('bulk_csv_file'):
@@ -888,40 +950,44 @@ def admin_add_question(request):
             else:
                 try:
                     reader = csv.DictReader(io.StringIO(raw))
-                    created = skipped = failed = 0
+                    created = failed = 0
                     for row in reader:
                         row = {k.strip(): v for k, v in row.items() if k}
-                        if not row.get('question_text'):
+                        if not (row.get('question_text') or '').strip():
                             continue
-                        kwargs = _create_mcq_from_row(row)
-                        if _mcq_exists(kwargs):
-                            skipped += 1
-                            continue
-                        obj = MCQQuestion.objects.create(**kwargs)
-                        ok, err = save_mcq_to_supabase(obj)
-                        if ok:
+                        payload = _mcq_payload_from_row(row)
+                        _, err = add_mcq_to_supabase(payload)
+                        if err is None:
                             created += 1
                         else:
                             failed += 1
-                            messages.warning(request, f'Question saved locally but Supabase failed: {err}')
-                    msg = f'Imported {created} question(s) from CSV.'
-                    if skipped:
-                        msg += f' Skipped {skipped} duplicate(s).'
+                            messages.warning(request, f'Supabase failed: {err}')
+                    msg = f'Imported {created} question(s) to Supabase.'
                     if failed:
-                        msg += f' {failed} failed to reach Supabase (see warnings above).'
+                        msg += f' {failed} failed.'
                     messages.success(request, msg)
                     return redirect('website:admin_questions_list')
                 except ValueError as e:
                     messages.error(request, str(e))
             return render(request, 'website/admin_add_question.html', {'form': form, 'bulk_csv_text': raw})
-        # Single question form
         if form.is_valid():
-            obj = form.save()
-            ok, err = save_mcq_to_supabase(obj)
-            if ok:
+            payload = {
+                'question_text': form.cleaned_data.get('question_text') or '',
+                'option_a': form.cleaned_data.get('option_a') or '',
+                'option_b': form.cleaned_data.get('option_b') or '',
+                'option_c': form.cleaned_data.get('option_c') or '',
+                'option_d': form.cleaned_data.get('option_d') or '',
+                'correct_answer': form.cleaned_data.get('correct_answer') or 'A',
+                'answer_explanation': form.cleaned_data.get('answer_explanation') or '',
+                'program': form.cleaned_data.get('program') or '',
+                'paper': form.cleaned_data.get('paper') or '',
+                'topic': form.cleaned_data.get('topic') or '',
+            }
+            _, err = add_mcq_to_supabase(payload)
+            if err is None:
                 messages.success(request, 'Question saved to Supabase successfully.')
             else:
-                messages.warning(request, f'Question saved locally but Supabase save failed: {err}')
+                messages.warning(request, f'Save failed: {err}')
             return redirect('website:admin_questions_list')
     return render(request, 'website/admin_add_question.html', {'form': form})
 
@@ -929,19 +995,23 @@ def admin_add_question(request):
 @login_required
 @admin_required
 def admin_questions_list(request):
-    """List all MCQ questions with links to add, edit, delete."""
-    qs = MCQQuestion.objects.all().order_by('-created_at')
-    paginator = Paginator(qs, 100)
+    """List all MCQ questions from Supabase with links to add, edit, delete."""
+    from .supabase_sync import fetch_mcq_questions_from_supabase
+    questions_list, err = fetch_mcq_questions_from_supabase(order='created_at.desc')
+    if err:
+        messages.warning(request, f'Could not load questions from Supabase: {err}')
+        questions_list = []
+    paginator = Paginator(questions_list, 100)
     page = request.GET.get('page') or 1
     try:
-        questions = paginator.page(page)
+        page_obj = paginator.page(page)
     except PageNotAnInteger:
-        questions = paginator.page(1)
+        page_obj = paginator.page(1)
     except EmptyPage:
-        questions = paginator.page(paginator.num_pages)
+        page_obj = paginator.page(paginator.num_pages)
     context = {
-        'questions': questions,
-        'page_obj': questions,
+        'questions': page_obj,
+        'page_obj': page_obj,
         'paginator': paginator,
     }
     return render(request, 'website/admin_questions_list.html', context)
@@ -950,29 +1020,56 @@ def admin_questions_list(request):
 @login_required
 @admin_required
 def admin_question_form(request, pk=None):
-    """Add (pk=None) or edit (pk) an MCQ question."""
-    from .supabase_sync import save_mcq_to_supabase
-    instance = MCQQuestion.objects.get(pk=pk) if pk else None
-    form = AdminMCQForm(request.POST or None, instance=instance)
+    """Add (pk=None) or edit (pk=Supabase id) an MCQ question — read/write Supabase only."""
+    from .supabase_sync import fetch_mcq_question_by_id_supabase, add_mcq_to_supabase, update_mcq_in_supabase
+    question = None
+    if pk:
+        question, _ = fetch_mcq_question_by_id_supabase(pk)
+        if not question:
+            messages.error(request, 'Question not found.')
+            return redirect('website:admin_questions_list')
+    form = AdminMCQForm(request.POST or None, instance=None, initial=question)
     if request.method == 'POST' and form.is_valid():
-        obj = form.save()
-        ok, err = save_mcq_to_supabase(obj)
+        payload = {
+            'question_text': form.cleaned_data.get('question_text') or '',
+            'option_a': form.cleaned_data.get('option_a') or '',
+            'option_b': form.cleaned_data.get('option_b') or '',
+            'option_c': form.cleaned_data.get('option_c') or '',
+            'option_d': form.cleaned_data.get('option_d') or '',
+            'correct_answer': form.cleaned_data.get('correct_answer') or 'A',
+            'answer_explanation': form.cleaned_data.get('answer_explanation') or '',
+            'program': form.cleaned_data.get('program') or '',
+            'paper': form.cleaned_data.get('paper') or '',
+            'topic': form.cleaned_data.get('topic') or '',
+        }
+        if pk:
+            ok, err = update_mcq_in_supabase(pk, payload)
+        else:
+            _, err = add_mcq_to_supabase(payload)
+            ok = err is None
         if ok:
             messages.success(request, 'Question saved to Supabase successfully.')
         else:
-            messages.warning(request, f'Question saved locally but Supabase save failed: {err}')
+            messages.warning(request, f'Save failed: {err}')
         return redirect('website:admin_questions_list')
-    return render(request, 'website/admin_question_form.html', {'form': form, 'question': instance})
+    return render(request, 'website/admin_question_form.html', {'form': form, 'question': question})
 
 
 @login_required
 @admin_required
 def admin_question_delete(request, pk):
-    """Confirm and delete an MCQ question."""
-    question = get_object_or_404(MCQQuestion, pk=pk)
+    """Confirm and delete an MCQ question from Supabase."""
+    from .supabase_sync import fetch_mcq_question_by_id_supabase, delete_mcq_from_supabase
+    question, err = fetch_mcq_question_by_id_supabase(pk)
+    if not question:
+        messages.error(request, err or 'Question not found.')
+        return redirect('website:admin_questions_list')
     if request.method == 'POST':
-        question.delete()
-        messages.success(request, 'Question deleted.')
+        ok, err = delete_mcq_from_supabase(pk)
+        if ok:
+            messages.success(request, 'Question deleted.')
+        else:
+            messages.warning(request, f'Delete failed: {err}')
         return redirect('website:admin_questions_list')
     return render(request, 'website/admin_question_confirm_delete.html', {'question': question})
 
