@@ -111,11 +111,8 @@ SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://plyqzvmtkdymnaxvipyu.supabase.
 SUPABASE_KEY = os.getenv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTMzMjAsImV4cCI6MjA4Nzk2OTMyMH0.26zvvdZa9x1ZOKtfDZfjXACmtMv3ssOsEXjc7P_qxAM')  # anon/public key
 SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjM5MzMyMCwiZXhwIjoyMDg3OTY5MzIwfQ.zhnP7XYrw5xslOQtkp1oeaGmUci4HsEdyysKjjbZSyU')  # service_role key (bypasses RLS)
 SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'project-files')
-# Bucket for case study file uploads (create it in Supabase Dashboard → Storage: name = case-studies, public)
 SUPABASE_STORAGE_BUCKET_CASE_STUDIES = os.getenv('SUPABASE_STORAGE_BUCKET_CASE_STUDIES', 'case-studies')
-# Bucket for books/slides file uploads (create it in Supabase Dashboard → Storage: name = book-slide, public)
 SUPABASE_STORAGE_BUCKET_BOOKS_SLIDES = os.getenv('SUPABASE_STORAGE_BUCKET_BOOKS_SLIDES', 'book-slide')
-# Sync signup/data to Supabase REST API (requires app_users table - see supabase_app_users.sql)
 SUPABASE_SYNC_ENABLED = True
 
 # Validate Supabase configuration on startup

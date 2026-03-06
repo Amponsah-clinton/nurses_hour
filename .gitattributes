@@ -1,0 +1,2 @@
+# Ensure shell scripts use LF on all systems so Vercel build works
+build_files.sh text eol=lf

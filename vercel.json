@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bash build_files.sh",
+  "buildCommand": "sh build_files.sh",
   "routes": [
     {
       "src": "/(.*)",
