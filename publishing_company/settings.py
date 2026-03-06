@@ -1,24 +1,16 @@
 """
 Django settings for publishing_company project.
+Uses SQLite for Django (sessions, auth) and Supabase for app data/storage.
 """
-
 from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Load environment variables from .env file
 load_dotenv(BASE_DIR / '.env')
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-# Set DEBUG=True only in .env for local dev. On Vercel, leave unset or set DEBUG=False.
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
-
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1', '.vercel.app']
 
 # CSRF and Security Settings
@@ -30,17 +22,16 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
 ]
-
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_USE_SESSIONS = False
 
+# Use signed cookie sessions on Vercel — SQLite in /tmp is ephemeral per serverless instance
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_COOKIE_SECURE = False
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
-# Use signed-cookie sessions (no DB table needed; works on Vercel and locally)
-SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_SAVE_EVERY_REQUEST = True
 
 # Application definition
@@ -86,99 +77,30 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
-# Database
-# Supports two ways to configure Postgres (avoids URL-encoding issues with special chars):
-#   Option A — Individual vars (recommended when password has special chars like @):
-#              Set DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT in Vercel env
-#   Option B — Single DATABASE_URL (remember to encode @ in password as %40)
-# Falls back to SQLite for local development.
-_use_postgres = False
-_pg_host = os.getenv('DB_HOST', '').strip()
-_pg_name = os.getenv('DB_NAME', 'postgres').strip()
-_pg_user = os.getenv('DB_USER', '').strip()
-_pg_password = os.getenv('DB_PASSWORD', '').strip()
-_pg_port = os.getenv('DB_PORT', '6543').strip()
-
-if _pg_host and _pg_user and _pg_password:
-    # Option A: individual vars
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'HOST': _pg_host,
-            'NAME': _pg_name,
-            'USER': _pg_user,
-            'PASSWORD': _pg_password,
-            'PORT': _pg_port,
-            'CONN_MAX_AGE': 600,
-            'OPTIONS': {'connect_timeout': 10},
-        }
+# Database - SQLite for Django (sessions, auth, etc.)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3',
     }
-    _use_postgres = True
-    print(f"[DB] Using Postgres via individual DB_* vars (host={_pg_host})")
-else:
-    _db_url = os.getenv('DATABASE_URL', '').strip()
-    # Reject unfilled placeholder URLs
-    if _db_url and 'projectid' not in _db_url and len(_db_url) > 30:
-        try:
-            import dj_database_url
-            # conn_health_checks=False avoids connecting at import (serverless cold start)
-            DATABASES = {
-                'default': dj_database_url.parse(
-                    _db_url, conn_max_age=600, conn_health_checks=False,
-                )
-            }
-            _use_postgres = True
-            print("[DB] Using Postgres via DATABASE_URL")
-        except Exception as _db_err:
-            print(f"[DB] DATABASE_URL parse failed: {_db_err} — using SQLite")
+}
 
-if not _use_postgres:
-    # On Vercel we require Supabase Postgres — no SQLite (ephemeral, not shared).
-    if os.getenv('VERCEL'):
-        raise RuntimeError(
-            'On Vercel, Django must use Supabase Postgres. Set in Vercel → Settings → Environment Variables:\n'
-            '  Option A: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME (optional: DB_PORT=6543)\n'
-            '  Option B: DATABASE_URL=postgresql://user:pass@host:6543/postgres\n'
-            'Use Supabase Dashboard → Settings → Database for the connection string (Transaction Pooler, port 6543).'
-        )
-    _db_name = os.getenv('DATABASE_PATH') or str(BASE_DIR / 'db.sqlite3')
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': _db_name,
-        }
-    }
-    print(f"[DB] Using SQLite: {_db_name}")
-
-# Supabase Configuration
-# IMPORTANT: Set these as environment variables in production!
-# Get keys from: https://supabase.com/dashboard → Settings → API
+# Supabase: anon (publishable) and service_role (secret) keys from your project
 SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://plyqzvmtkdymnaxvipyu.supabase.co')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTMzMjAsImV4cCI6MjA4Nzk2OTMyMH0.26zvvdZa9x1ZOKtfDZfjXACmtMv3ssOsEXjc7P_qxAM')  # anon/public key
-SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjM5MzMyMCwiZXhwIjoyMDg3OTY5MzIwfQ.zhnP7XYrw5xslOQtkp1oeaGmUci4HsEdyysKjjbZSyU')  # service_role key (bypasses RLS)
+SUPABASE_KEY = os.getenv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTMzMjAsImV4cCI6MjA4Nzk2OTMyMH0.26zvvdZa9x1ZOKtfDZfjXACmtMv3ssOsEXjc7P_qxAM')
+SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjM5MzMyMCwiZXhwIjoyMDg3OTY5MzIwfQ.zhnP7XYrw5xslOQtkp1oeaGmUci4HsEdyysKjjbZSyU')
 SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'project-files')
 SUPABASE_STORAGE_BUCKET_CASE_STUDIES = os.getenv('SUPABASE_STORAGE_BUCKET_CASE_STUDIES', 'case-studies')
 SUPABASE_STORAGE_BUCKET_BOOKS_SLIDES = os.getenv('SUPABASE_STORAGE_BUCKET_BOOKS_SLIDES', 'book-slide')
 SUPABASE_SYNC_ENABLED = True
 
-# Validate Supabase configuration on startup
-_key_len = len(SUPABASE_KEY or '')
-_svc_len = len(SUPABASE_SERVICE_KEY or '')
-if not SUPABASE_URL or not SUPABASE_KEY or not SUPABASE_SERVICE_KEY:
-    print("\n" + "=" * 80)
-    print("WARNING: Supabase configuration is incomplete!")
-    print("=" * 80)
-    print("SUPABASE_URL:", "OK" if SUPABASE_URL else "MISSING")
-    print("SUPABASE_KEY:", "OK" if _key_len > 100 else "MISSING or INVALID (length: {})".format(_key_len))
-    print("SUPABASE_SERVICE_KEY:", "OK" if _svc_len > 100 else "MISSING or INVALID (length: {})".format(_svc_len))
-    print("\nTo fix: set SUPABASE_KEY and SUPABASE_SERVICE_KEY in .env or as environment variables.")
-    print("=" * 80 + "\n")
-elif _key_len > 100 and _svc_len > 100:
-    print("[Supabase Config] OK - Connected to {} (anon: {} chars, service: {} chars)".format(
-        SUPABASE_URL, _key_len, _svc_len))
+if SUPABASE_URL and SUPABASE_KEY and SUPABASE_SERVICE_KEY:
+    if len(SUPABASE_KEY) > 100 and len(SUPABASE_SERVICE_KEY) > 100:
+        print(f"[Supabase Config] OK - Connected to {SUPABASE_URL}")
+    else:
+        print("[Supabase Config] WARNING - Keys may be invalid")
 else:
-    print("[Supabase Config] WARNING - Keys may be invalid (anon: {} chars, service: {} chars)".format(
-        _key_len, _svc_len))
+    print("[Supabase Config] WARNING - Configuration incomplete!")
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -232,5 +154,16 @@ ADMIN_INITIAL_PASSWORD = 'Nursehub2026@'
 INQUIRY_NOTIFY_EMAIL = os.getenv('INQUIRY_NOTIFY_EMAIL', 'amoasamoahransford17@gmail.com')
 
 
-PAYSTACK_SECRET_KEY ="sk_test_7c773f96c11b14401a005855684ed93ac9042154"
-PAYSTACK_PUBLIC_KEY ="pk_test_81ab70cdc3b06eecabcfac2b3f32ca03f1ecb4ee"
+# Paystack
+PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', '')
+PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY', '')
+
+# DataHub Ghana — data bundle delivery API & wallet top-up
+DATAHUB_API_KEY = os.getenv('DATAHUB_API_KEY', '')
+DATAHUB_BASE_URL = os.getenv('DATAHUB_BASE_URL', 'https://app.datahubgh.com/api/external')
+DATAHUB_TOPUP_URL = os.getenv('DATAHUB_TOPUP_URL', 'https://app.datahubgh.com')
+DATAHUB_BUNDLES_URL = os.getenv('DATAHUB_BUNDLES_URL', '')
+DATAHUB_BUNDLES_BASE = os.getenv('DATAHUB_BUNDLES_BASE', 'https://app.datahubgh.com/api')
+
+# Optional: allow dashboard (e.g. buy_data) access via Authorization: Bearer <secret>
+DASHBOARD_API_SECRET = os.getenv('DASHBOARD_API_SECRET', '')
