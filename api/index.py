@@ -2,19 +2,24 @@
 Vercel entry point. All routes go through Django WSGI.
 
 Cold-start behaviour:
-- DATABASE_URL set (Supabase Postgres): run `migrate --noinput` once so tables exist.
-  Django's migration framework is idempotent — already-applied migrations are skipped instantly.
-- No DATABASE_URL (SQLite fallback): copy pre-migrated db.sqlite3 from bundle to /tmp.
+- Postgres in use (DATABASE_URL or DB_HOST+DB_USER+DB_PASSWORD): run `migrate --noinput`
+  so Django tables exist. Idempotent — already-applied migrations are skipped.
+- SQLite fallback: copy pre-migrated db.sqlite3 from bundle to /tmp.
 """
 import os
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'publishing_company.settings')
 
+def _using_postgres():
+    if os.getenv('DATABASE_URL', '').strip() and 'projectid' not in os.getenv('DATABASE_URL', ''):
+        return True
+    return bool(
+        os.getenv('DB_HOST') and os.getenv('DB_USER') and os.getenv('DB_PASSWORD')
+    )
+
 if os.getenv('VERCEL'):
-    database_url = os.getenv('DATABASE_URL')
-    if database_url:
-        # Postgres (Supabase) — run migrations so Django tables exist.
-        # This is fast after the first deploy since nothing will be pending.
+    if _using_postgres():
+        # Postgres — run migrations so Django tables exist.
         try:
             import django
             django.setup()

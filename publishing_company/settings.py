@@ -88,30 +88,51 @@ TEMPLATES = [
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
 # Database
-# Priority 1: DATABASE_URL (Supabase Postgres / any Postgres) → persistent, works on Vercel
-# Priority 2: DATABASE_PATH env (build-time SQLite path override)
-# Priority 3: /tmp/db.sqlite3 on Vercel (ephemeral, seeded from bundle by api/index.py)
-# Priority 4: Local db.sqlite3 for development
-_db_url = os.getenv('DATABASE_URL')
-if _db_url:
-    try:
-        import dj_database_url
-        DATABASES = {
-            'default': dj_database_url.parse(
-                _db_url,
-                conn_max_age=600,
-                conn_health_checks=True,
-            )
+# Supports two ways to configure Postgres (avoids URL-encoding issues with special chars):
+#   Option A — Individual vars (recommended when password has special chars like @):
+#              Set DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT in Vercel env
+#   Option B — Single DATABASE_URL (remember to encode @ in password as %40)
+# Falls back to SQLite for local development.
+_use_postgres = False
+_pg_host = os.getenv('DB_HOST', '').strip()
+_pg_name = os.getenv('DB_NAME', 'postgres').strip()
+_pg_user = os.getenv('DB_USER', '').strip()
+_pg_password = os.getenv('DB_PASSWORD', '').strip()
+_pg_port = os.getenv('DB_PORT', '6543').strip()
+
+if _pg_host and _pg_user and _pg_password:
+    # Option A: individual vars
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'HOST': _pg_host,
+            'NAME': _pg_name,
+            'USER': _pg_user,
+            'PASSWORD': _pg_password,
+            'PORT': _pg_port,
+            'CONN_MAX_AGE': 600,
+            'OPTIONS': {'connect_timeout': 10},
         }
-    except ImportError:
-        # dj-database-url not installed — parse manually
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'OPTIONS': {'service': _db_url},
-            }
-        }
+    }
+    _use_postgres = True
+    print(f"[DB] Using Postgres via individual DB_* vars (host={_pg_host})")
 else:
+    _db_url = os.getenv('DATABASE_URL', '').strip()
+    # Reject unfilled placeholder URLs
+    if _db_url and 'projectid' not in _db_url and len(_db_url) > 30:
+        try:
+            import dj_database_url
+            DATABASES = {
+                'default': dj_database_url.parse(
+                    _db_url, conn_max_age=600, conn_health_checks=True,
+                )
+            }
+            _use_postgres = True
+            print("[DB] Using Postgres via DATABASE_URL")
+        except Exception as _db_err:
+            print(f"[DB] DATABASE_URL parse failed: {_db_err} — using SQLite")
+
+if not _use_postgres:
     _db_name = (
         os.getenv('DATABASE_PATH')
         or ('/tmp/db.sqlite3' if os.getenv('VERCEL') else str(BASE_DIR / 'db.sqlite3'))
@@ -122,6 +143,7 @@ else:
             'NAME': _db_name,
         }
     }
+    print(f"[DB] Using SQLite: {_db_name}")
 
 # Supabase Configuration
 # IMPORTANT: Set these as environment variables in production!

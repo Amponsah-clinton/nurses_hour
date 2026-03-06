@@ -3,14 +3,16 @@
 set -e
 
 echo "==> Running migrations"
-if [ -n "$DATABASE_URL" ]; then
-    # Supabase Postgres or any DATABASE_URL: migrate against it directly
+# Postgres if DATABASE_URL is set OR individual DB_* vars are set (matches settings.py)
+if [ -n "$DATABASE_URL" ] && [ "${DATABASE_URL#*projectid}" = "$DATABASE_URL" ]; then
     echo "    Using DATABASE_URL (Postgres)"
+    python manage.py migrate --noinput
+elif [ -n "$DB_HOST" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASSWORD" ]; then
+    echo "    Using DB_* vars (Postgres)"
     python manage.py migrate --noinput
 else
     # SQLite fallback: write db.sqlite3 into project dir so it ships in the bundle.
-    # Unset VERCEL so settings.py uses BASE_DIR/db.sqlite3 instead of /tmp.
-    echo "    Using SQLite (no DATABASE_URL)"
+    echo "    Using SQLite"
     DATABASE_PATH="$(pwd)/db.sqlite3" VERCEL= python manage.py migrate --noinput
 fi
 
