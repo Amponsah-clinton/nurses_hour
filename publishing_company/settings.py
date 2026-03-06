@@ -87,26 +87,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
-# Database
-# If DATABASE_URL is set (e.g. Supabase PostgreSQL on Vercel), use it.
-# Otherwise fall back to local SQLite for development.
-_db_url = os.getenv('DATABASE_URL')
-if _db_url:
-    import dj_database_url
-    DATABASES = {
-        'default': dj_database_url.parse(
-            _db_url,
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+# Database — SQLite for Django auth/sessions.
+# On Vercel the build step runs migrate and writes db.sqlite3 into /var/task (read-only bundle).
+# For writes (signup, etc.) we use /tmp/db.sqlite3 at runtime; it is pre-seeded by copying the
+# built db at cold start (see wsgi.py). App data always goes through Supabase REST API.
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3',
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # Supabase Configuration
 # IMPORTANT: Set these as environment variables in production!

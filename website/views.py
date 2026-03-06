@@ -246,15 +246,7 @@ def login_view(request):
             else:
                 form.add_error(None, 'Please correct the errors below.')
         except OperationalError:
-            # On Vercel, /tmp/db.sqlite3 is empty on cold start. Run migrations once so next attempt works.
-            try:
-                from django.core.management import call_command
-                call_command('migrate', '--noinput', verbosity=0)
-                messages.success(request, 'Database is ready. Please log in again.')
-            except Exception:
-                form.add_error(None, 'Login is temporarily unavailable. Please try again in a moment.')
-            else:
-                return redirect('website:login')
+            form.add_error(None, 'Login is temporarily unavailable. Please try again in a moment.')
     return render(request, 'website/login.html', {'form': form})
 
 
