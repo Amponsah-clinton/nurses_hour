@@ -87,22 +87,41 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
-# Database — SQLite for Django auth/sessions.
-# Build (build_files.sh) runs migrate with VERCEL unset → creates db.sqlite3 in project root (in bundle).
-# Runtime (Vercel): wsgi.py copies that file to /tmp/db.sqlite3 so it is writable per instance.
-_db_path = os.getenv('DATABASE_PATH')
-if _db_path:
-    _db_name = _db_path
-elif os.getenv('VERCEL'):
-    _db_name = '/tmp/db.sqlite3'
+# Database
+# Priority 1: DATABASE_URL (Supabase Postgres / any Postgres) → persistent, works on Vercel
+# Priority 2: DATABASE_PATH env (build-time SQLite path override)
+# Priority 3: /tmp/db.sqlite3 on Vercel (ephemeral, seeded from bundle by api/index.py)
+# Priority 4: Local db.sqlite3 for development
+_db_url = os.getenv('DATABASE_URL')
+if _db_url:
+    try:
+        import dj_database_url
+        DATABASES = {
+            'default': dj_database_url.parse(
+                _db_url,
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
+        }
+    except ImportError:
+        # dj-database-url not installed — parse manually
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'OPTIONS': {'service': _db_url},
+            }
+        }
 else:
-    _db_name = str(BASE_DIR / 'db.sqlite3')
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': _db_name,
+    _db_name = (
+        os.getenv('DATABASE_PATH')
+        or ('/tmp/db.sqlite3' if os.getenv('VERCEL') else str(BASE_DIR / 'db.sqlite3'))
+    )
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': _db_name,
+        }
     }
-}
 
 # Supabase Configuration
 # IMPORTANT: Set these as environment variables in production!

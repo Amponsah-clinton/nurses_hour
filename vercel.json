@@ -1,9 +1,16 @@
 {
-  "buildCommand": "sh build_files.sh",
-  "routes": [
+  "version": 2,
+  "builds": [
     {
-      "src": "/(.*)",
-      "dest": "api/wsgi.py"
+      "src": "api/index.py",
+      "use": "@vercel/python"
     }
-  ]
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.py"
+    }
+  ],
+  "buildCommand": "sh build_files.sh"
 }
