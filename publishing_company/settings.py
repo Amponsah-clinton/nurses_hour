@@ -16,7 +16,9 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Locally (no VERCEL env) → DEBUG = True
+# On Vercel (VERCEL env present) → DEBUG = False so WhiteNoise can serve static files
+DEBUG = not os.getenv('VERCEL')
 
 ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1', '.vercel.app']
 
@@ -42,6 +44,8 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 if os.getenv('VERCEL'):
     SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
     SESSION_SAVE_EVERY_REQUEST = True
+    # Let WhiteNoise read static files directly from css/, js/, etc. without needing collectstatic
+    WHITENOISE_USE_FINDERS = True
 
 # Application definition
 INSTALLED_APPS = [

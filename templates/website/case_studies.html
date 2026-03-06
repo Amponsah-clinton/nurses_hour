@@ -19,30 +19,81 @@
     <a href="{% url 'website:profile_support' %}" class="db-bottom__item"><i class="fa fa-user"></i> Profile</a>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+.cs-owned-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+@media (min-width: 576px) {
+    .cs-owned-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 992px) {
+    .cs-owned-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.cs-owned-card {
+    border-radius: 12px;
+    border: 1px solid var(--db-border);
+    background: #fff;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 140px;
+    box-shadow: 0 1px 4px rgba(15,23,42,0.04);
+}
+.cs-owned-title {
+    font-weight: 700;
+    font-size: 0.98rem;
+    margin-bottom: 0.35rem;
+}
+.cs-owned-scenario {
+    font-size: 0.85rem;
+    color: var(--db-muted);
+    margin-bottom: 0.75rem;
+}
+.cs-owned-footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: var(--db-muted);
+}
+.cs-owned-open {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+</style>
+{% endblock %}
+
 {% block content %}
     <div class="db-card">
-        <h2 class="db-card__title">Your case studies</h2>
+        <h2 class="db-card__title">Your purchased case studies</h2>
         {% if owned_case_studies %}
-            <p class="db-card__text">These are the case studies you have unlocked. You can open the file or read the content directly.</p>
-            <ul style="list-style:none;padding-left:0;margin:0;">
+            <p class="db-card__text">Everything you have paid for lives here. Open any case study any time from your library.</p>
+            <div class="cs-owned-grid">
                 {% for c in owned_case_studies %}
-                    <li style="padding:0.6rem 0;border-bottom:1px solid var(--db-border);">
-                        <div style="font-weight:600;margin-bottom:0.15rem;">{{ c.title }}</div>
-                        {% if c.scenario %}
-                            <div style="font-size:0.85rem;color:var(--db-muted);margin-bottom:0.25rem;">
-                                {{ c.scenario|truncatechars:140 }}
-                            </div>
+                <article class="cs-owned-card">
+                    <h3 class="cs-owned-title">{{ c.title }}</h3>
+                    {% if c.scenario %}
+                    <p class="cs-owned-scenario">{{ c.scenario|truncatechars:140 }}</p>
+                    {% endif %}
+                    <div class="cs-owned-footer">
+                        <span><i class="fa fa-check-circle" aria-hidden="true"></i> Purchased</span>
+                        {% if c.file_url %}
+                        <a href="{{ c.file_url }}" target="_blank" rel="noopener" class="cs-owned-open">
+                            Open case &rarr;
+                        </a>
                         {% endif %}
-                        <div>
-                            {% if c.file_url %}
-                                <a href="{{ c.file_url }}" target="_blank" rel="noopener" style="margin-right:0.75rem;">Open PDF/link →</a>
-                            {% endif %}
-                        </div>
-                    </li>
+                    </div>
+                </article>
                 {% endfor %}
-            </ul>
+            </div>
         {% else %}
-            <p class="db-card__text">You haven’t unlocked any case studies yet. Browse the catalogue below to add one to your library.</p>
+            <p class="db-card__text">You haven’t purchased any case studies yet. Browse the catalogue below to add your first one.</p>
         {% endif %}
     </div>
 

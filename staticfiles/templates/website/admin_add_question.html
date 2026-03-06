@@ -45,7 +45,6 @@
 {% block content %}
     <div class="db-card db-card--form db-card--single">
         <h2 class="db-card__title">Add one question</h2>
-        <p class="db-card__text">Add a single multiple choice question. Saved directly to Supabase.</p>
         <form method="post" class="db-form db-form--grid">
             {% csrf_token %}
             <input type="hidden" name="bulk_type" value="">

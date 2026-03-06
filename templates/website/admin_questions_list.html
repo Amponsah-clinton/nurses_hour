@@ -31,7 +31,6 @@
     <div class="db-card db-card--form">
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem;">
             <p class="db-card__text" style="margin: 0;">
-                Manage MCQ questions. Add, edit, or delete. Saved directly to Supabase.<br>
                 <strong>Total questions:</strong> {{ paginator.count }}
             </p>
             <a href="{% url 'website:admin_question_add' %}" class="btn-save" style="text-decoration: none; display: inline-block;">Add question</a>
