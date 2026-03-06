@@ -16,9 +16,8 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Controlled via DEBUG env var. Locally you can keep DEBUG=True in .env.
-# On Vercel, set DEBUG=False in the dashboard so production uses proper static handling.
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+# Set DEBUG=True only in .env for local dev. On Vercel, leave unset or set DEBUG=False.
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1', '.vercel.app']
 
@@ -122,9 +121,10 @@ else:
     if _db_url and 'projectid' not in _db_url and len(_db_url) > 30:
         try:
             import dj_database_url
+            # conn_health_checks=False avoids connecting at import (serverless cold start)
             DATABASES = {
                 'default': dj_database_url.parse(
-                    _db_url, conn_max_age=600, conn_health_checks=True,
+                    _db_url, conn_max_age=600, conn_health_checks=False,
                 )
             }
             _use_postgres = True

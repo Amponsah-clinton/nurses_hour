@@ -1,7 +1,7 @@
 Django>=4.2,<5
 python-dotenv>=1.0.0
 whitenoise>=6.0.0
-dj-database-url
+dj-database-url>=2.0.0
 psycopg2-binary
 gunicorn
-whitenoise
+supabase

@@ -7,6 +7,7 @@ Cold-start behaviour:
 - SQLite fallback: copy pre-migrated db.sqlite3 from bundle to /tmp.
 """
 import os
+import sys
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'publishing_company.settings')
 
@@ -26,7 +27,6 @@ if os.getenv('VERCEL'):
             from django.core.management import call_command
             call_command('migrate', '--noinput', verbosity=0)
         except Exception as _mig_err:
-            import sys
             print(f"[api/index.py] migrate failed: {_mig_err}", file=sys.stderr)
     else:
         # SQLite fallback — copy pre-migrated bundle db to writable /tmp.
@@ -36,6 +36,12 @@ if os.getenv('VERCEL'):
         if not os.path.exists(_runtime_db) and os.path.exists(_bundle_db):
             shutil.copy2(_bundle_db, _runtime_db)
 
-from django.core.wsgi import get_wsgi_application  # noqa: E402
-
-app = get_wsgi_application()
+# Load Django WSGI app; on failure print full traceback to stderr so Vercel logs show the real error
+try:
+    from django.core.wsgi import get_wsgi_application  # noqa: E402
+    app = get_wsgi_application()
+except Exception as e:
+    import traceback
+    print("[api/index.py] Failed to load Django app:", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+    raise
