@@ -93,20 +93,12 @@ WSGI_APPLICATION = 'publishing_company.wsgi.application'
 # Database - Using SQLite for Django's built-in tables (sessions, auth, etc.)
 # Supabase is used for application data sync via REST API (see supabase_sync.py)
 # On Vercel: use /tmp/db.sqlite3 (writable); locally: BASE_DIR/db.sqlite3
-if os.getenv('VERCEL'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': '/tmp/db.sqlite3',
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3',
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # Supabase Configuration
 # IMPORTANT: Set these as environment variables in production!
