@@ -222,28 +222,31 @@ def login_view(request):
         return redirect_to_dashboard(request.user)
     form = LoginForm(request.POST or None)
     if request.method == 'POST':
-        if form.is_valid():
-            email_or_phone = form.cleaned_data['email_or_phone']
-            password = form.cleaned_data['password']
-            user = None
-            if '@' in email_or_phone:
-                user = User.objects.filter(email=email_or_phone).first()
+        try:
+            if form.is_valid():
+                email_or_phone = form.cleaned_data['email_or_phone']
+                password = form.cleaned_data['password']
+                user = None
+                if '@' in email_or_phone:
+                    user = User.objects.filter(email=email_or_phone).first()
+                else:
+                    # Phone login – fail gracefully if UserProfile table is missing (e.g. on fresh Vercel deploy)
+                    try:
+                        from .models import UserProfile
+                        profile = UserProfile.objects.filter(phone=email_or_phone).select_related('user').first()
+                    except OperationalError:
+                        profile = None
+                    if profile:
+                        user = profile.user
+                if user and user.check_password(password):
+                    auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                    messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
+                    return redirect_to_dashboard(user)
+                form.add_error(None, 'Invalid email/phone or password.')
             else:
-                # Phone login – fail gracefully if UserProfile table is missing (e.g. on fresh Vercel deploy)
-                try:
-                    from .models import UserProfile
-                    profile = UserProfile.objects.filter(phone=email_or_phone).select_related('user').first()
-                except OperationalError:
-                    profile = None
-                if profile:
-                    user = profile.user
-            if user and user.check_password(password):
-                auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
-                return redirect_to_dashboard(user)
-            form.add_error(None, 'Invalid email/phone or password.')
-        else:
-            form.add_error(None, 'Please correct the errors below.')
+                form.add_error(None, 'Please correct the errors below.')
+        except OperationalError:
+            form.add_error(None, 'Login is temporarily unavailable while the database is initialised. Please try again in a minute.')
     return render(request, 'website/login.html', {'form': form})
 
 
