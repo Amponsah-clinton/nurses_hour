@@ -88,13 +88,19 @@ TEMPLATES = [
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
 # Database — SQLite for Django auth/sessions.
-# On Vercel the build step runs migrate and writes db.sqlite3 into /var/task (read-only bundle).
-# For writes (signup, etc.) we use /tmp/db.sqlite3 at runtime; it is pre-seeded by copying the
-# built db at cold start (see wsgi.py). App data always goes through Supabase REST API.
+# Build (build_files.sh) runs migrate with VERCEL unset → creates db.sqlite3 in project root (in bundle).
+# Runtime (Vercel): wsgi.py copies that file to /tmp/db.sqlite3 so it is writable per instance.
+_db_path = os.getenv('DATABASE_PATH')
+if _db_path:
+    _db_name = _db_path
+elif os.getenv('VERCEL'):
+    _db_name = '/tmp/db.sqlite3'
+else:
+    _db_name = str(BASE_DIR / 'db.sqlite3')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3',
+        'NAME': _db_name,
     }
 }
 
