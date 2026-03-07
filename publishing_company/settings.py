@@ -7,7 +7,8 @@ import os
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env')
+if (BASE_DIR / '.env').exists():
+    load_dotenv(BASE_DIR / '.env')
 
 
 
@@ -60,7 +61,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'publishing_company.urls'
-WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
 TEMPLATES = [
     {
