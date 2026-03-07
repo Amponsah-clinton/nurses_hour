@@ -253,24 +253,12 @@ def login_view(request):
                 from .supabase_auth import ensure_admin_in_supabase
                 ensure_admin_in_supabase()
 
-            # Authenticate via Supabase Auth
-            from .supabase_auth import sign_in_supabase, ensure_user_in_supabase_auth
-            from .supabase_sync import get_app_user_by_email
+            # Authenticate via Supabase Auth — single source of truth for everyone
+            from .supabase_auth import sign_in_supabase
             supabase_user, err = sign_in_supabase(email, password)
             if err:
-                # Migration: user may exist in app_users but not yet in Supabase Auth — create Auth user and retry
-                app_user, _ = get_app_user_by_email(email)
-                if app_user:
-                    ensure_user_in_supabase_auth(
-                        email,
-                        password,
-                        full_name=(app_user.get('full_name') or '').strip() or None,
-                        email_confirm=True,
-                    )
-                    supabase_user, err = sign_in_supabase(email, password)
-                if err:
-                    form.add_error(None, err)
-                    return render(request, 'website/login.html', {'form': form})
+                form.add_error(None, 'Invalid email/phone or password.')
+                return render(request, 'website/login.html', {'form': form})
 
             # Mirror into Django (needed only for session / @login_required)
             meta = getattr(supabase_user, 'user_metadata', None) or {}
