@@ -223,6 +223,8 @@ def signup(request):
         profile.program = program or profile.program
         profile.save(update_fields=['phone', 'program'])
         auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+        request.session['_nh_email'] = user.email
+        request.session['_nh_name'] = user.first_name or ''
         messages.success(request, f'Welcome, {name or email}! Your account has been created.')
         return redirect_to_dashboard(user)
     return render(request, 'website/signup.html', {'form': form})
@@ -267,6 +269,8 @@ def login_view(request):
                 form.add_error(None, 'Invalid email/phone or password.')
                 return render(request, 'website/login.html', {'form': form})
             auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            request.session['_nh_email'] = user.email
+            request.session['_nh_name'] = user.first_name or ''
             messages.success(request, f'Welcome back, {user.get_short_name() or email}!')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
