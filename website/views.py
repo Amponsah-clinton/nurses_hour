@@ -433,6 +433,14 @@ def practice_session_question(request, session_id, index):
             return redirect('website:practice_review', session_id=session.id)
         return redirect('website:practice_session_question', session_id=session.id, index=index + 1)
     progress_pct = int((index / float(total)) * 100)
+    answered_indices = set(
+        PracticeAnswer.objects.filter(session=session).values_list('order_index', flat=True)
+    )
+    current_answer = None
+    existing = PracticeAnswer.objects.filter(session=session, order_index=index).first()
+    if existing:
+        current_answer = existing.chosen_answer or ''
+    question_numbers = list(range(1, total + 1))
     context = {
         'session': session,
         'question': question,
@@ -441,6 +449,9 @@ def practice_session_question(request, session_id, index):
         'progress_pct': progress_pct,
         'timed': session.timed,
         'seconds_per_question': 50,
+        'answered_indices': answered_indices,
+        'chosen_answer': current_answer,
+        'question_numbers': question_numbers,
     }
     return render(request, 'website/practice_run.html', context)
 
