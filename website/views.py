@@ -225,6 +225,8 @@ def signup(request):
         auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         request.session['_nh_email'] = user.email
         request.session['_nh_name'] = user.first_name or ''
+        request.session['_nh_program'] = program or ''
+        request.session['_nh_phone'] = phone or ''
         messages.success(request, f'Welcome, {name or email}! Your account has been created.')
         return redirect_to_dashboard(user)
     return render(request, 'website/signup.html', {'form': form})
@@ -271,6 +273,9 @@ def login_view(request):
             auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             request.session['_nh_email'] = user.email
             request.session['_nh_name'] = user.first_name or ''
+            profile = getattr(user, 'profile', None)
+            request.session['_nh_program'] = getattr(profile, 'program', '') or ''
+            request.session['_nh_phone'] = getattr(profile, 'phone', '') or ''
             messages.success(request, f'Welcome back, {user.get_short_name() or email}!')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
