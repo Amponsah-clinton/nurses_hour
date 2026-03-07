@@ -83,8 +83,20 @@ WSGI_APPLICATION = 'publishing_company.wsgi.application'
 # Database — on Vercel we MUST use Postgres (SQLite causes [Errno 16] Device or resource busy)
 _use_postgres = False
 if os.getenv('VERCEL'):
+    import sys
     _db_url = os.getenv('DATABASE_URL', '').strip()
-    if _db_url and 'projectid' not in _db_url and len(_db_url) > 30:
+    # Try building URL from DB_* if DATABASE_URL is missing or looks like a placeholder
+    if (not _db_url or 'projectid' in _db_url or len(_db_url) < 30) and os.getenv('DB_HOST') and os.getenv('DB_USER') and os.getenv('DB_PASSWORD'):
+        from urllib.parse import quote_plus
+        _pw = os.getenv('DB_PASSWORD', '')
+        _db_url = 'postgresql://%s:%s@%s:%s/%s' % (
+            os.getenv('DB_USER', 'postgres'),
+            quote_plus(_pw),
+            os.getenv('DB_HOST', ''),
+            os.getenv('DB_PORT', '6543'),
+            os.getenv('DB_NAME', 'postgres'),
+        )
+    if _db_url and len(_db_url) > 30:
         try:
             import dj_database_url
             DATABASES = {
@@ -93,8 +105,8 @@ if os.getenv('VERCEL'):
                 )
             }
             _use_postgres = True
+            print("[DB] Using Postgres (Supabase)", file=sys.stderr)
         except Exception as _e:
-            import sys
             print(f"[DB] DATABASE_URL parse failed: {_e}", file=sys.stderr)
     if not _use_postgres and os.getenv('DB_HOST') and os.getenv('DB_USER') and os.getenv('DB_PASSWORD'):
         DATABASES = {
@@ -110,12 +122,11 @@ if os.getenv('VERCEL'):
             }
         }
         _use_postgres = True
+        print("[DB] Using Postgres via DB_HOST/DB_USER/DB_PASSWORD", file=sys.stderr)
     if not _use_postgres:
+        print("[DB] ERROR: On Vercel set DATABASE_URL (from Supabase → Database → Connection string, Transaction 6543) OR set DB_HOST, DB_USER, DB_PASSWORD. Check Vercel → Project → Settings → Environment Variables.", file=sys.stderr)
         raise RuntimeError(
-            'On Vercel you must use Supabase Postgres (SQLite causes "Device or resource busy"). '
-            'In Vercel → Settings → Environment Variables set either: '
-            'DATABASE_URL=postgresql://... from Supabase Dashboard → Settings → Database (Transaction pooler, port 6543), '
-            'or DB_HOST, DB_USER, DB_PASSWORD (and optionally DB_NAME, DB_PORT=6543).'
+            'Vercel requires Supabase Postgres. Set DATABASE_URL or DB_HOST+DB_USER+DB_PASSWORD in Vercel Environment Variables. See Vercel Function Logs.'
         )
 if not _use_postgres:
     DATABASES = {
