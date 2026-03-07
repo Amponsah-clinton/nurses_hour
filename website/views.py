@@ -211,12 +211,11 @@ def signup(request):
             email=email,
             defaults={'username': email, 'first_name': name or email}
         )
-        if created:
-            user.set_password(password)
-            user.save()
-        else:
+        if not created:
             user.first_name = name or user.first_name
             user.save(update_fields=['first_name'])
+        user.set_unusable_password()
+        user.save(update_fields=['password'])
         from .models import UserProfile
         profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'phone': phone, 'program': program})
         profile.phone = phone or meta.get('phone') or profile.phone
@@ -239,67 +238,56 @@ def login_view(request):
             email_or_phone = (form.cleaned_data['email_or_phone'] or '').strip()
             password = form.cleaned_data['password']
             email = email_or_phone
+
+            # Phone → look up email from Supabase app_users
             if '@' not in email_or_phone:
                 from .supabase_sync import get_app_user_email_by_phone
                 email, _ = get_app_user_email_by_phone(email_or_phone)
                 if not email:
                     form.add_error(None, 'No account found with this phone number.')
                     return render(request, 'website/login.html', {'form': form})
-            # Admin fallback: if this is the configured admin email, allow login via Django (settings password)
+
+            # If this is the admin email, make sure the admin account exists in Supabase Auth
             admin_email = getattr(settings, 'ADMIN_EMAIL', None)
-            admin_password = getattr(settings, 'ADMIN_INITIAL_PASSWORD', None)
-            if admin_email and (email or '').strip().lower() == (admin_email or '').strip().lower():
-                user = User.objects.filter(email__iexact=email).first()
-                if not user and admin_password:
-                    user = User.objects.create_user(
-                        username=email,
-                        email=email,
-                        password=admin_password,
-                        first_name=(admin_email.split('@')[0] or 'Admin'),
-                    )
-                    UserProfile.objects.get_or_create(user=user, defaults={})
-                if user and admin_password and user.check_password(admin_password):
-                    auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                    messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
-                    return redirect_to_dashboard(user)
-                if user and user.check_password(password):
-                    auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                    messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
-                    return redirect_to_dashboard(user)
-            # Supabase Auth for everyone else (and admin if Supabase has them)
+            if admin_email and email.strip().lower() == admin_email.strip().lower():
+                from .supabase_auth import ensure_admin_in_supabase
+                ensure_admin_in_supabase()
+
+            # Authenticate via Supabase Auth — single source of truth for everyone
             from .supabase_auth import sign_in_supabase
             supabase_user, err = sign_in_supabase(email, password)
             if err:
-                # If admin and we have Django user with admin password, try that once more (in case Supabase was down)
-                if admin_email and (email or '').strip().lower() == (admin_email or '').strip().lower():
-                    user = User.objects.filter(email__iexact=email).first()
-                    if user and admin_password and user.check_password(admin_password):
-                        auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                        messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
-                        return redirect_to_dashboard(user)
                 form.add_error(None, 'Invalid email/phone or password.')
                 return render(request, 'website/login.html', {'form': form})
+
+            # Mirror into Django (needed only for session / @login_required)
             meta = getattr(supabase_user, 'user_metadata', None) or {}
+            display_name = (meta.get('full_name') or '').strip() or email
             user, created = User.objects.get_or_create(
                 email=email,
-                defaults={
-                    'username': email,
-                    'first_name': (meta.get('full_name') or email),
-                }
+                defaults={'username': email, 'first_name': display_name}
             )
-            if created:
-                user.set_password(password)
-                user.save()
+            if not created and display_name and display_name != email:
+                user.first_name = display_name
+                user.save(update_fields=['first_name'])
+            user.set_unusable_password()
+            user.save(update_fields=['password'])
+
             profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'program': meta.get('program') or ''})
-            if meta.get('phone'):
-                profile.phone = meta.get('phone')
-            if meta.get('program'):
-                profile.program = meta.get('program')
-            profile.save(update_fields=['phone', 'program'])
+            changed = False
+            if meta.get('phone') and meta['phone'] != profile.phone:
+                profile.phone = meta['phone']
+                changed = True
+            if meta.get('program') and meta['program'] != profile.program:
+                profile.program = meta['program']
+                changed = True
+            if changed:
+                profile.save(update_fields=['phone', 'program'])
+
             from .supabase_sync import save_user_to_supabase
             save_user_to_supabase(user)
             auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            messages.success(request, f'Welcome back, {user.get_short_name() or user.email}!')
+            messages.success(request, f'Welcome back, {user.get_short_name() or email}!')
             return redirect_to_dashboard(user)
         else:
             form.add_error(None, 'Please correct the errors below.')
@@ -780,27 +768,47 @@ def profile_support(request):
 @login_required
 @admin_required
 def admin_dashboard(request):
-    """Admin dashboard: stats, users, content. Hardcoded admin only."""
-    from .models import Visit
-    since = timezone.now() - timedelta(hours=24)
-    visits_24h = Visit.objects.filter(created_at__gte=since).count()
-    user_count = User.objects.count()
-    question_count = MCQQuestion.objects.count()
-    case_study_count = CaseStudy.objects.count()
-    book_count = BookOrSlide.objects.count()
-    payment_count = Payment.objects.count()
-    inquiry_count = Inquiry.objects.count()
-
-    # Breakdown of questions by programme and written paper
-    raw_counts = (
-        MCQQuestion.objects.values('program', 'paper')
-        .annotate(total=models.Count('id'))
+    """Admin dashboard: stats and content — all counts from Supabase."""
+    from .supabase_sync import (
+        fetch_mcq_questions_from_supabase,
+        fetch_case_studies_from_supabase,
+        fetch_books_slides_from_supabase,
+        fetch_inquiries_from_supabase,
+        _get,
     )
-    count_map = {
-        (row['program'] or '', row['paper'] or ''): row['total']
-        for row in raw_counts
-    }
+    # ── Visits (Django SQLite — lightweight) ──────────────────────────────
+    from .models import Visit
+    try:
+        since = timezone.now() - timedelta(hours=24)
+        visits_24h = Visit.objects.filter(created_at__gte=since).count()
+    except Exception:
+        visits_24h = 0
 
+    # ── All counts from Supabase ──────────────────────────────────────────
+    all_questions, _ = fetch_mcq_questions_from_supabase(order='created_at.desc')
+    question_count = len(all_questions)
+
+    case_studies, _ = fetch_case_studies_from_supabase()
+    case_study_count = len(case_studies)
+
+    books_slides, _ = fetch_books_slides_from_supabase()
+    book_count = len(books_slides)
+
+    payments, _ = _get('payments', order='created_at.desc')
+    payment_count = len(payments)
+
+    inquiries, _ = fetch_inquiries_from_supabase()
+    inquiry_count = len(inquiries)
+
+    app_users, _ = _get('app_users', order='created_at.desc')
+    user_count = len(app_users)
+
+    # ── Question breakdown by programme & paper ───────────────────────────
+    from collections import Counter
+    count_map = Counter(
+        (q.get('program') or '', q.get('paper') or '')
+        for q in all_questions
+    )
     question_breakdown = []
     for prog_code, papers in PAPER_CONFIG.items():
         prog_total = 0
@@ -820,6 +828,11 @@ def admin_dashboard(request):
             'rows': rows,
             'total': prog_total,
         })
+
+    # ── Recent users & payments (from Supabase) ───────────────────────────
+    recent_users = app_users[:10]
+    recent_payments = payments[:8]
+
     context = {
         'visits_24h': visits_24h + 100,
         'user_count': 1000 + user_count,
@@ -829,8 +842,8 @@ def admin_dashboard(request):
         'payment_count': payment_count,
         'inquiry_count': inquiry_count,
         'question_breakdown': question_breakdown,
-        'recent_users': User.objects.order_by('-date_joined')[:10],
-        'recent_payments': Payment.objects.order_by('-created_at')[:8],
+        'recent_users': recent_users,
+        'recent_payments': recent_payments,
     }
     return render(request, 'website/admin_dashboard.html', context)
 
@@ -1169,16 +1182,24 @@ def admin_content_supabase(request):
 @login_required
 @admin_required
 def admin_all_users(request):
-    users = User.objects.order_by('-date_joined')
+    from .supabase_sync import _get
+    users, err = _get('app_users', order='created_at.desc')
+    if err:
+        messages.warning(request, f'Could not load users from Supabase: {err}')
+        users = []
     return render(request, 'website/admin_all_users.html', {'users': users})
 
 
 @login_required
 @admin_required
 def admin_payments(request):
-    """List all payments (recorded from case study purchases and synced to Supabase)."""
-    payments = Payment.objects.all()[:100]
-    return render(request, 'website/admin_payments.html', {'payments': payments})
+    """List all payments from Supabase."""
+    from .supabase_sync import _get
+    payments, err = _get('payments', order='created_at.desc')
+    if err:
+        messages.warning(request, f'Could not load payments from Supabase: {err}')
+        payments = []
+    return render(request, 'website/admin_payments.html', {'payments': payments[:100]})
 
 
 def _parse_iso_date(iso_str):
