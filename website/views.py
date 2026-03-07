@@ -4,6 +4,7 @@ import io
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
+import base64
 from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth import login as auth_login, logout as auth_logout, authenticate, get_user_model
@@ -114,6 +115,16 @@ def _get_landing_stats():
         }
     except OperationalError:
         return {'visits_display': 100, 'users_display': 1000}
+
+
+# Minimal 1x1 transparent PNG so favicon requests don't 404 (Vercel/browser)
+_FAVICON_PNG = base64.b64decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+)
+
+
+def favicon_view(request):
+    return HttpResponse(_FAVICON_PNG, content_type='image/png')
 
 
 def home(request):

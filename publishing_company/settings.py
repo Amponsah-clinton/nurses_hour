@@ -10,7 +10,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 
-WSGI_APPLICATION = 'api.wsgi.website'
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
@@ -61,6 +60,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'publishing_company.urls'
+WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
 TEMPLATES = [
     {
@@ -80,13 +80,42 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
-# Database - SQLite for Django (sessions, auth, etc.)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else BASE_DIR / 'db.sqlite3',
+# Database — Supabase PostgreSQL on Vercel (avoids SQLite lock); SQLite locally
+_use_postgres = False
+if os.getenv('VERCEL'):
+    _db_url = os.getenv('DATABASE_URL', '').strip()
+    if _db_url and 'projectid' not in _db_url and len(_db_url) > 30:
+        try:
+            import dj_database_url
+            DATABASES = {
+                'default': dj_database_url.parse(
+                    _db_url, conn_max_age=60, conn_health_checks=False,
+                )
+            }
+            _use_postgres = True
+        except Exception:
+            pass
+    if not _use_postgres and os.getenv('DB_HOST') and os.getenv('DB_USER') and os.getenv('DB_PASSWORD'):
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'HOST': os.getenv('DB_HOST'),
+                'NAME': os.getenv('DB_NAME', 'postgres'),
+                'USER': os.getenv('DB_USER'),
+                'PASSWORD': os.getenv('DB_PASSWORD'),
+                'PORT': os.getenv('DB_PORT', '6543'),
+                'CONN_MAX_AGE': 60,
+                'OPTIONS': {'connect_timeout': 10},
+            }
+        }
+        _use_postgres = True
+if not _use_postgres:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else str(BASE_DIR / 'db.sqlite3'),
+        }
     }
-}
 
 # Supabase: anon (publishable) and service_role (secret) keys from your project
 SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://plyqzvmtkdymnaxvipyu.supabase.co')
@@ -129,9 +158,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 WHITENOISE_USE_FINDERS = True
 
-# Media files
+# Media files — on Vercel write only to /tmp to avoid read-only filesystem
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = Path('/tmp/media') if os.getenv('VERCEL') else (BASE_DIR / 'media')
 
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -170,3 +199,10 @@ DATAHUB_BUNDLES_BASE = os.getenv('DATAHUB_BUNDLES_BASE', 'https://app.datahubgh.
 
 # Optional: allow dashboard (e.g. buy_data) access via Authorization: Bearer <secret>
 DASHBOARD_API_SECRET = os.getenv('DASHBOARD_API_SECRET', '')
+
+# Cache — in-memory only on Vercel (no file-based cache to avoid locks)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
