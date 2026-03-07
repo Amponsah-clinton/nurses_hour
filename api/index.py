@@ -1,41 +1,21 @@
 """
-Vercel entry point. All routes go through Django WSGI.
-
-On Vercel you must set Supabase Postgres: DATABASE_URL or DB_HOST + DB_USER + DB_PASSWORD.
-See Supabase Dashboard → Settings → Database → Connection string (Transaction, port 6543).
+Vercel entry point — same pattern as xceldata. All routes go through Django WSGI.
+Uses SQLite in /tmp on Vercel; Supabase (env SUPABASE_URL, SUPABASE_SERVICE_KEY) for auth and data.
 """
 import os
-import sys
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'publishing_company.settings')
 
-def _using_postgres():
-    if os.getenv('DATABASE_URL', '').strip() and 'projectid' not in os.getenv('DATABASE_URL', ''):
-        return True
-    return bool(
-        os.getenv('DB_HOST') and os.getenv('DB_USER') and os.getenv('DB_PASSWORD')
-    )
-
 if os.getenv('VERCEL'):
-    if not _using_postgres():
-        print("[api/index.py] No Postgres config: set DATABASE_URL or DB_HOST, DB_USER, DB_PASSWORD in Vercel env.", file=sys.stderr)
-    if _using_postgres():
+    # Copy build-time db.sqlite3 to /tmp so tables exist (build_files.sh runs migrate with SQLite)
+    import shutil
+    _bundle_db = os.path.join(os.path.dirname(__file__), '..', 'db.sqlite3')
+    _runtime_db = '/tmp/db.sqlite3'
+    if os.path.isfile(_bundle_db) and not os.path.isfile(_runtime_db):
         try:
-            import django
-            django.setup()
-            from django.core.management import call_command
-            call_command('migrate', '--noinput', verbosity=0)
-        except Exception as _mig_err:
-            import traceback
-            print("[api/index.py] migrate failed (check DB credentials):", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+            shutil.copy2(_bundle_db, _runtime_db)
+        except Exception:
+            pass
 
-# Load Django WSGI app; on failure Vercel logs will show the traceback
-try:
-    from django.core.wsgi import get_wsgi_application  # noqa: E402
-    app = get_wsgi_application()
-except Exception as e:
-    import traceback
-    print("[api/index.py] Failed to load Django app (often missing/wrong DATABASE_URL or DB_*):", file=sys.stderr)
-    traceback.print_exc(file=sys.stderr)
-    raise
+from django.core.wsgi import get_wsgi_application
+app = get_wsgi_application()

@@ -80,61 +80,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
-# Database — on Vercel we MUST use Postgres (SQLite causes [Errno 16] Device or resource busy)
-_use_postgres = False
-if os.getenv('VERCEL'):
-    import sys
-    _db_url = os.getenv('DATABASE_URL', '').strip()
-    # Try building URL from DB_* if DATABASE_URL is missing or looks like a placeholder
-    if (not _db_url or 'projectid' in _db_url or len(_db_url) < 30) and os.getenv('DB_HOST') and os.getenv('DB_USER') and os.getenv('DB_PASSWORD'):
-        from urllib.parse import quote_plus
-        _pw = os.getenv('DB_PASSWORD', '')
-        _db_url = 'postgresql://%s:%s@%s:%s/%s' % (
-            os.getenv('DB_USER', 'postgres'),
-            quote_plus(_pw),
-            os.getenv('DB_HOST', ''),
-            os.getenv('DB_PORT', '6543'),
-            os.getenv('DB_NAME', 'postgres'),
-        )
-    if _db_url and len(_db_url) > 30:
-        try:
-            import dj_database_url
-            DATABASES = {
-                'default': dj_database_url.parse(
-                    _db_url, conn_max_age=60, conn_health_checks=False,
-                )
-            }
-            _use_postgres = True
-            print("[DB] Using Postgres (Supabase)", file=sys.stderr)
-        except Exception as _e:
-            print(f"[DB] DATABASE_URL parse failed: {_e}", file=sys.stderr)
-    if not _use_postgres and os.getenv('DB_HOST') and os.getenv('DB_USER') and os.getenv('DB_PASSWORD'):
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'HOST': os.getenv('DB_HOST'),
-                'NAME': os.getenv('DB_NAME', 'postgres'),
-                'USER': os.getenv('DB_USER'),
-                'PASSWORD': os.getenv('DB_PASSWORD'),
-                'PORT': os.getenv('DB_PORT', '6543'),
-                'CONN_MAX_AGE': 60,
-                'OPTIONS': {'connect_timeout': 10},
-            }
-        }
-        _use_postgres = True
-        print("[DB] Using Postgres via DB_HOST/DB_USER/DB_PASSWORD", file=sys.stderr)
-    if not _use_postgres:
-        print("[DB] ERROR: On Vercel set DATABASE_URL (from Supabase → Database → Connection string, Transaction 6543) OR set DB_HOST, DB_USER, DB_PASSWORD. Check Vercel → Project → Settings → Environment Variables.", file=sys.stderr)
-        raise RuntimeError(
-            'Vercel requires Supabase Postgres. Set DATABASE_URL or DB_HOST+DB_USER+DB_PASSWORD in Vercel Environment Variables. See Vercel Function Logs.'
-        )
-if not _use_postgres:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': str(BASE_DIR / 'db.sqlite3'),
-        }
+# Database — same as xceldata: SQLite for Django (sessions, etc.). Use /tmp on Vercel so the app always starts; all real data (auth, questions) is in Supabase.
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else str(BASE_DIR / 'db.sqlite3'),
     }
+}
 
 # Supabase: anon (publishable) and service_role (secret) keys from your project
 SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://plyqzvmtkdymnaxvipyu.supabase.co')

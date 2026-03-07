@@ -1,19 +1,24 @@
 """
 Supabase Auth helpers: sign up, sign in, and admin user management.
+Uses a single cached client (like xceldata) so we don't recreate on every request.
 Returns (user_data, None) on success or (None, error_message) on failure.
-user_data has attributes: .id, .email, .user_metadata (dict with full_name, phone, program).
 """
 from django.conf import settings
 
+_supabase_client = None
+
 
 def _client():
-    """Supabase client using the service_role key (server-side only)."""
-    from supabase import create_client
-    url = getattr(settings, 'SUPABASE_URL', None)
-    key = getattr(settings, 'SUPABASE_SERVICE_KEY', None) or getattr(settings, 'SUPABASE_KEY', None)
-    if not url or not key:
-        raise ValueError('SUPABASE_URL and SUPABASE_SERVICE_KEY are required.')
-    return create_client(url.rstrip('/'), key)
+    """Single Supabase client using SUPABASE_SERVICE_KEY (cached like xceldata get_supabase())."""
+    global _supabase_client
+    if _supabase_client is None:
+        from supabase import create_client
+        url = getattr(settings, 'SUPABASE_URL', None)
+        key = getattr(settings, 'SUPABASE_SERVICE_KEY', None) or getattr(settings, 'SUPABASE_KEY', None)
+        if not url or not key:
+            raise ValueError('SUPABASE_URL and SUPABASE_SERVICE_KEY are required.')
+        _supabase_client = create_client(url.rstrip('/'), key)
+    return _supabase_client
 
 
 def sign_up_supabase(email, password, full_name=None, phone=None, program=None):
