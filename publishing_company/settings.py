@@ -80,7 +80,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
-# Database — Supabase PostgreSQL on Vercel (avoids SQLite lock); SQLite locally
+# Database — on Vercel we MUST use Postgres (SQLite causes [Errno 16] Device or resource busy)
 _use_postgres = False
 if os.getenv('VERCEL'):
     _db_url = os.getenv('DATABASE_URL', '').strip()
@@ -93,8 +93,9 @@ if os.getenv('VERCEL'):
                 )
             }
             _use_postgres = True
-        except Exception:
-            pass
+        except Exception as _e:
+            import sys
+            print(f"[DB] DATABASE_URL parse failed: {_e}", file=sys.stderr)
     if not _use_postgres and os.getenv('DB_HOST') and os.getenv('DB_USER') and os.getenv('DB_PASSWORD'):
         DATABASES = {
             'default': {
@@ -109,11 +110,18 @@ if os.getenv('VERCEL'):
             }
         }
         _use_postgres = True
+    if not _use_postgres:
+        raise RuntimeError(
+            'On Vercel you must use Supabase Postgres (SQLite causes "Device or resource busy"). '
+            'In Vercel → Settings → Environment Variables set either: '
+            'DATABASE_URL=postgresql://... from Supabase Dashboard → Settings → Database (Transaction pooler, port 6543), '
+            'or DB_HOST, DB_USER, DB_PASSWORD (and optionally DB_NAME, DB_PORT=6543).'
+        )
 if not _use_postgres:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else str(BASE_DIR / 'db.sqlite3'),
+            'NAME': str(BASE_DIR / 'db.sqlite3'),
         }
     }
 
