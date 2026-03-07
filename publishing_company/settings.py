@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
+
+WSGI_APPLICATION = 'api.wsgi.website'
+
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1', '.vercel.app']
