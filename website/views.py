@@ -13,6 +13,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from urllib.parse import unquote
 from django.db import OperationalError, models
 from datetime import timedelta
 from django.template.loader import render_to_string
@@ -268,12 +269,15 @@ def login_view(request):
             auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, f'Welcome back, {user.get_short_name() or email}!')
             next_url = request.POST.get('next') or request.GET.get('next')
-            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts=request.get_host()):
-                return redirect(next_url)
+            if next_url:
+                next_url = unquote(next_url)
+                if url_has_allowed_host_and_scheme(next_url, allowed_hosts=request.get_host()):
+                    return redirect(next_url)
             return redirect_to_dashboard(user)
         else:
             form.add_error(None, 'Please correct the errors below.')
-    return render(request, 'website/login.html', {'form': form})
+    next_param = request.GET.get('next') or request.POST.get('next') or ''
+    return render(request, 'website/login.html', {'form': form, 'next_param': next_param})
 
 
 def logout_view(request):

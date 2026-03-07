@@ -59,7 +59,7 @@
                     <div class="auth-card__body">
                         <form method="post" action="{% url 'website:login' %}" class="auth-form" novalidate>
                             {% csrf_token %}
-                            {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
+                            {% if next_param %}<input type="hidden" name="next" value="{{ next_param }}">{% endif %}
                             <div class="form-group">
                                 <label for="id_email_or_phone">{{ form.email_or_phone.label }}<span class="required-asterisk" aria-hidden="true">*</span></label>
                                 <input type="text" name="email_or_phone" id="id_email_or_phone" value="{{ form.email_or_phone.value|default:'' }}"
