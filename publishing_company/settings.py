@@ -1,6 +1,6 @@
 """
 Django settings for publishing_company project.
-Uses SQLite for Django (sessions, auth) and Supabase for app data/storage.
+Uses SQLite only for all data (auth, questions, payments, inquiries, etc.).
 """
 from pathlib import Path
 import os
@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'website',
+    'website.apps.WebsiteConfig',
     'whitenoise',
 ]
 
@@ -80,30 +80,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'publishing_company.wsgi.application'
 
-# Database — same as xceldata: SQLite for Django (sessions, etc.). Use /tmp on Vercel so the app always starts; all real data (auth, questions) is in Supabase.
+# Database — SQLite only (local: db.sqlite3; Vercel: /tmp/db.sqlite3).
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': '/tmp/db.sqlite3' if os.getenv('VERCEL') else str(BASE_DIR / 'db.sqlite3'),
     }
 }
-
-# Supabase: anon (publishable) and service_role (secret) keys from your project
-SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://plyqzvmtkdymnaxvipyu.supabase.co')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTMzMjAsImV4cCI6MjA4Nzk2OTMyMH0.26zvvdZa9x1ZOKtfDZfjXACmtMv3ssOsEXjc7P_qxAM')
-SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBseXF6dm10a2R5bW5heHZpcHl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjM5MzMyMCwiZXhwIjoyMDg3OTY5MzIwfQ.zhnP7XYrw5xslOQtkp1oeaGmUci4HsEdyysKjjbZSyU')
-SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'project-files')
-SUPABASE_STORAGE_BUCKET_CASE_STUDIES = os.getenv('SUPABASE_STORAGE_BUCKET_CASE_STUDIES', 'case-studies')
-SUPABASE_STORAGE_BUCKET_BOOKS_SLIDES = os.getenv('SUPABASE_STORAGE_BUCKET_BOOKS_SLIDES', 'book-slide')
-SUPABASE_SYNC_ENABLED = True
-
-if SUPABASE_URL and SUPABASE_KEY and SUPABASE_SERVICE_KEY:
-    if len(SUPABASE_KEY) > 100 and len(SUPABASE_SERVICE_KEY) > 100:
-        print(f"[Supabase Config] OK - Connected to {SUPABASE_URL}")
-    else:
-        print("[Supabase Config] WARNING - Keys may be invalid")
-else:
-    print("[Supabase Config] WARNING - Configuration incomplete!")
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

@@ -1,6 +1,6 @@
 """
 Vercel entry point. All routes go through Django WSGI.
-SQLite in /tmp on Vercel; Supabase from env (SUPABASE_URL, SUPABASE_SERVICE_KEY).
+SQLite only; database in /tmp on Vercel.
 """
 import os
 import sys

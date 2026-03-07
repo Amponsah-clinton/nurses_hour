@@ -280,7 +280,7 @@
                             <tr>
                                 <td>{{ u.email|default:"—" }}</td>
                                 <td>{{ u.full_name|default:"—" }}</td>
-                                <td class="adm-table--muted">{{ u.created_at|slice:":10"|default:"—" }}</td>
+                                <td class="adm-table--muted">{{ u.created_at|date:"Y-m-d"|default:"—" }}</td>
                             </tr>
                             {% empty %}
                             <tr><td colspan="3" class="adm-empty">No users yet.</td></tr>
@@ -349,7 +349,7 @@
                                 <td>{{ p.user_email|default:"—" }}</td>
                                 <td>{{ p.amount|default:"—" }}</td>
                                 <td><span class="adm-badge adm-badge--{{ p.status }}">{{ p.status|capfirst|default:"—" }}</span></td>
-                                <td class="adm-table--muted">{{ p.created_at|slice:":10"|default:"—" }}</td>
+                                <td class="adm-table--muted">{{ p.created_at|date:"Y-m-d"|default:"—" }}</td>
                             </tr>
                             {% empty %}
                             <tr><td colspan="4" class="adm-empty">No payments yet.</td></tr>

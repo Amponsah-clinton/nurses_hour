@@ -33,8 +33,8 @@ urlpatterns = [
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-dashboard/questions/', views.admin_questions_list, name='admin_questions_list'),
     path('admin-dashboard/questions/add/', views.admin_question_form, name='admin_question_add'),
-    path('admin-dashboard/questions/<str:pk>/edit/', views.admin_question_form, name='admin_question_edit'),
-    path('admin-dashboard/questions/<str:pk>/delete/', views.admin_question_delete, name='admin_question_delete'),
+    path('admin-dashboard/questions/<int:pk>/edit/', views.admin_question_form, name='admin_question_edit'),
+    path('admin-dashboard/questions/<int:pk>/delete/', views.admin_question_delete, name='admin_question_delete'),
     path('admin-dashboard/add-question/', views.admin_add_question, name='admin_add_question'),
     path('admin-dashboard/questions/import-template/', views.admin_mcq_import_template, name='admin_mcq_import_template'),
     path('admin-dashboard/add-case-study/', views.admin_add_case_study, name='admin_add_case_study'),
@@ -44,5 +44,4 @@ urlpatterns = [
     path('admin-dashboard/payments/', views.admin_payments, name='admin_payments'),
     path('admin-dashboard/inquiries/', views.admin_inquiries_list, name='admin_inquiries_list'),
     path('admin-dashboard/inquiries/<int:pk>/reply/', views.admin_inquiry_reply, name='admin_inquiry_reply'),
-    path('admin-dashboard/inquiries/<uuid:supabase_id>/reply/', views.admin_inquiry_reply_supabase, name='admin_inquiry_reply_supabase'),
 ]

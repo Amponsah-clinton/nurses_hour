@@ -68,7 +68,7 @@
                         <td class="inq-msg" title="{{ i.message }}">{{ i.message }}</td>
                         <td>{{ i.created_at|date:"M j, Y H:i" }}</td>
                         <td class="inq-replied">{% if i.replied_at %}Yes · {{ i.replied_at|date:"M j" }}{% else %}—{% endif %}</td>
-                        <td><a href="{% url 'website:admin_inquiry_reply_supabase' i.id %}" class="btn-reply"><i class="fa fa-reply"></i> Reply</a></td>
+                        <td><a href="{% url 'website:admin_inquiry_reply' i.pk %}" class="btn-reply"><i class="fa fa-reply"></i> Reply</a></td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="7" class="inq-empty">No inquiries yet.</td></tr>

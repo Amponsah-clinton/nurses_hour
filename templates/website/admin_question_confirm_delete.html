@@ -30,7 +30,7 @@
 {% block content %}
     <div class="db-card db-card--form">
         <h2 class="db-card__title">Delete this question?</h2>
-        <p class="db-card__text" style="margin-bottom: 1rem;">This cannot be undone. The question will be removed from Django (Supabase is not auto-updated on delete).</p>
+        <p class="db-card__text" style="margin-bottom: 1rem;">This cannot be undone. The question will be removed from the database.</p>
         <div style="padding: 1rem; background: var(--db-bg); border-radius: 8px; margin-bottom: 1.5rem;">
             {{ question.question_text|truncatewords:30 }}
         </div>

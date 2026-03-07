@@ -176,9 +176,7 @@ def contact_submit(request):
     if not name or not email or not message:
         messages.error(request, 'Please fill in name, email, and message.')
         return redirect('website:contact')
-    inquiry = Inquiry.objects.create(name=name, email=email, subject=subject, message=message)
-    from .supabase_sync import save_inquiry_to_supabase
-    save_inquiry_to_supabase(inquiry)
+    Inquiry.objects.create(name=name, email=email, subject=subject, message=message)
     notify_email = getattr(settings, 'INQUIRY_NOTIFY_EMAIL', None) or settings.ADMIN_EMAIL
     if notify_email:
         try:
@@ -212,28 +210,16 @@ def signup(request):
         password = form.cleaned_data['password']
         phone = (form.cleaned_data.get('phone') or '').strip()
         program = (form.cleaned_data.get('program') or '').strip()
-        from .supabase_auth import sign_up_supabase
-        supabase_user, err = sign_up_supabase(email, password, full_name=name or None, phone=phone or None, program=program or None)
-        if err:
-            form.add_error(None, err)
-            return render(request, 'website/signup.html', {'form': form})
-        meta = getattr(supabase_user, 'user_metadata', None) or {}
-        user, created = User.objects.get_or_create(
+        user = User.objects.create_user(
+            username=email,
             email=email,
-            defaults={'username': email, 'first_name': name or email}
+            password=password,
+            first_name=name or email,
         )
-        if not created:
-            user.first_name = name or user.first_name
-            user.save(update_fields=['first_name'])
-        user.set_unusable_password()
-        user.save(update_fields=['password'])
-        from .models import UserProfile
         profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'phone': phone, 'program': program})
-        profile.phone = phone or meta.get('phone') or profile.phone
-        profile.program = program or meta.get('program') or profile.program
+        profile.phone = phone or profile.phone
+        profile.program = program or profile.program
         profile.save(update_fields=['phone', 'program'])
-        from .supabase_sync import save_user_to_supabase
-        save_user_to_supabase(user)
         auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         messages.success(request, f'Welcome, {name or email}! Your account has been created.')
         return redirect_to_dashboard(user)
@@ -250,53 +236,34 @@ def login_view(request):
             password = form.cleaned_data['password']
             email = email_or_phone
 
-            # Phone → look up email from Supabase app_users
+            # Phone → look up email from Django UserProfile
             if '@' not in email_or_phone:
-                from .supabase_sync import get_app_user_email_by_phone
-                email, _ = get_app_user_email_by_phone(email_or_phone)
-                if not email:
+                profile = UserProfile.objects.filter(phone=email_or_phone).select_related('user').first()
+                if not profile:
                     form.add_error(None, 'No account found with this phone number.')
                     return render(request, 'website/login.html', {'form': form})
+                email = profile.user.email
 
-            # If this is the admin email, make sure the admin account exists in Supabase Auth
+            # Ensure admin user exists (Django User) for admin email
             admin_email = getattr(settings, 'ADMIN_EMAIL', None)
-            if admin_email and email.strip().lower() == admin_email.strip().lower():
-                from .supabase_auth import ensure_admin_in_supabase
-                ensure_admin_in_supabase()
+            admin_password = getattr(settings, 'ADMIN_INITIAL_PASSWORD', None)
+            if admin_email and email.strip().lower() == admin_email.strip().lower() and admin_password:
+                User.objects.get_or_create(
+                    email=admin_email,
+                    defaults={
+                        'username': admin_email,
+                        'first_name': 'Admin',
+                    }
+                )
+                admin_user = User.objects.get(email=admin_email)
+                if not admin_user.check_password(admin_password):
+                    admin_user.set_password(admin_password)
+                    admin_user.save(update_fields=['password'])
 
-            # Authenticate via Supabase Auth — single source of truth for everyone
-            from .supabase_auth import sign_in_supabase
-            supabase_user, err = sign_in_supabase(email, password)
-            if err:
+            user = authenticate(request, username=email, password=password)
+            if not user:
                 form.add_error(None, 'Invalid email/phone or password.')
                 return render(request, 'website/login.html', {'form': form})
-
-            # Mirror into Django (needed only for session / @login_required)
-            meta = getattr(supabase_user, 'user_metadata', None) or {}
-            display_name = (meta.get('full_name') or '').strip() or email
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={'username': email, 'first_name': display_name}
-            )
-            if not created and display_name and display_name != email:
-                user.first_name = display_name
-                user.save(update_fields=['first_name'])
-            user.set_unusable_password()
-            user.save(update_fields=['password'])
-
-            profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'program': meta.get('program') or ''})
-            changed = False
-            if meta.get('phone') and meta['phone'] != profile.phone:
-                profile.phone = meta['phone']
-                changed = True
-            if meta.get('program') and meta['program'] != profile.program:
-                profile.program = meta['program']
-                changed = True
-            if changed:
-                profile.save(update_fields=['phone', 'program'])
-
-            from .supabase_sync import save_user_to_supabase
-            save_user_to_supabase(user)
             auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, f'Welcome back, {user.get_short_name() or email}!')
             return redirect_to_dashboard(user)
@@ -363,32 +330,32 @@ def practice(request):
         except ValueError:
             num_questions = 10
         num_questions = max(1, min(num_questions, 50))
-        # Fetch questions from Supabase; filter by program/paper
-        from .supabase_sync import fetch_mcq_questions_from_supabase
-        all_questions, fetch_err = fetch_mcq_questions_from_supabase(order='created_at.desc', program=program or None, paper=paper or None)
-        if fetch_err:
-            messages.error(request, f'Could not load questions: {fetch_err}')
-            return redirect('website:practice')
-        # Exclude already-answered Supabase question ids
-        answered_supabase_ids = set(
+        # Fetch questions from Django (SQLite); filter by program/paper
+        qs = MCQQuestion.objects.all().order_by('-created_at')
+        if program:
+            qs = qs.filter(program=program)
+        if paper:
+            qs = qs.filter(paper=paper)
+        # Exclude already-answered question IDs (Django FK)
+        answered_ids = set(
             PracticeAnswer.objects.filter(user=request.user)
-            .exclude(question_supabase_id='')
-            .values_list('question_supabase_id', flat=True)
+            .exclude(question__isnull=True)
+            .values_list('question_id', flat=True)
         )
-        candidate = [q for q in all_questions if str(q.get('id')) not in answered_supabase_ids]
+        candidate = list(qs.exclude(pk__in=answered_ids).values_list('pk', flat=True))
         import random
         random.shuffle(candidate)
         total_available = len(candidate)
         if total_available == 0:
-            if not all_questions:
-                messages.info(request, 'No questions are available yet for this paper. Please check back soon.')
-                return redirect('website:practice')
-            candidate = list(all_questions)
+            candidate = list(qs.values_list('pk', flat=True))
             random.shuffle(candidate)
             total_available = len(candidate)
+            if total_available == 0:
+                messages.info(request, 'No questions are available yet for this paper. Please check back soon.')
+                return redirect('website:practice')
             messages.info(request, 'You have answered all existing questions for this paper. We will now repeat questions for extra practice.')
         take = min(num_questions, total_available)
-        question_ids = [str(candidate[i]['id']) for i in range(take)]
+        question_ids = [int(candidate[i]) for i in range(take)]
         session = PracticeSession.objects.create(
             user=request.user,
             program=program,
@@ -397,8 +364,6 @@ def practice(request):
             total_questions=take,
             questions=question_ids,
         )
-        from .supabase_sync import save_practice_session_to_supabase
-        save_practice_session_to_supabase(session)
         return redirect('website:practice_session_question', session_id=session.id, index=1)
     # GET – show setup form and recent sessions
     program = default_program
@@ -417,7 +382,7 @@ def practice(request):
 
 @login_required
 def practice_session_question(request, session_id, index):
-    """Show a single question within a practice session (question from Supabase) and record the answer."""
+    """Show a single question within a practice session (question from Django/SQLite) and record the answer."""
     session = get_object_or_404(PracticeSession, id=session_id, user=request.user)
     questions = session.questions or []
     total = len(questions)
@@ -429,10 +394,13 @@ def practice_session_question(request, session_id, index):
         index = 1
     if index < 1 or index > total:
         return redirect('website:practice_review', session_id=session.id)
-    question_supabase_id = str(questions[index - 1])
-    from .supabase_sync import fetch_mcq_question_by_id_supabase
-    question_dict, err = fetch_mcq_question_by_id_supabase(question_supabase_id)
-    if err or not question_dict:
+    try:
+        question_id = int(questions[index - 1])
+    except (TypeError, ValueError):
+        messages.error(request, 'Question could not be loaded.')
+        return redirect('website:practice')
+    question = MCQQuestion.objects.filter(pk=question_id).first()
+    if not question:
         messages.error(request, 'Question could not be loaded.')
         return redirect('website:practice')
     if request.method == 'POST':
@@ -440,18 +408,18 @@ def practice_session_question(request, session_id, index):
         if chosen not in dict(MCQQuestion.CORRECT_CHOICES):
             messages.error(request, 'Please select an answer before continuing.')
             return redirect('website:practice_session_question', session_id=session.id, index=index)
-        correct_ans = (question_dict.get('correct_answer') or 'A').strip().upper()[:1]
+        correct_ans = (question.correct_answer or 'A').strip().upper()[:1]
         is_correct = (chosen == correct_ans)
-        answer, created = PracticeAnswer.objects.update_or_create(
+        PracticeAnswer.objects.update_or_create(
             session=session,
             order_index=index,
             defaults={
                 'user': request.user,
-                'question': None,
-                'question_supabase_id': question_supabase_id,
-                'question_text': question_dict.get('question_text') or '',
+                'question': question,
+                'question_supabase_id': '',
+                'question_text': question.question_text or '',
                 'correct_answer': correct_ans,
-                'answer_explanation': question_dict.get('answer_explanation') or '',
+                'answer_explanation': question.answer_explanation or '',
                 'chosen_answer': chosen,
                 'is_correct': is_correct,
             },
@@ -461,25 +429,9 @@ def practice_session_question(request, session_id, index):
         if index == total and session.finished_at is None:
             session.finished_at = timezone.now()
         session.save(update_fields=['correct_count', 'finished_at'])
-        from .supabase_sync import save_practice_session_to_supabase, save_practice_answer_to_supabase
-        save_practice_answer_to_supabase(answer)
-        if index == total:
-            save_practice_session_to_supabase(session)
         if index >= total:
             return redirect('website:practice_review', session_id=session.id)
         return redirect('website:practice_session_question', session_id=session.id, index=index + 1)
-    # Build a simple object for template (same attributes as before)
-    class QuestionObj:
-        pass
-    question = QuestionObj()
-    question.id = question_supabase_id
-    question.question_text = question_dict.get('question_text') or ''
-    question.option_a = question_dict.get('option_a') or ''
-    question.option_b = question_dict.get('option_b') or ''
-    question.option_c = question_dict.get('option_c') or ''
-    question.option_d = question_dict.get('option_d') or ''
-    question.correct_answer = (question_dict.get('correct_answer') or 'A').strip().upper()[:1]
-    question.answer_explanation = question_dict.get('answer_explanation') or ''
     progress_pct = int((index / float(total)) * 100)
     context = {
         'session': session,
@@ -634,8 +586,6 @@ def verify_case_study_payment(request):
                     )
                     access.payment = payment
                     access.save(update_fields=['payment'])
-                    from .supabase_sync import save_payment_to_supabase
-                    save_payment_to_supabase(payment)
                     messages.success(request, f'Payment successful! "{case.title}" is now in your library.')
                 else:
                     messages.info(request, 'You already have access to this case study.')
@@ -688,8 +638,6 @@ def purchase_case_study(request, pk):
         )
         access.payment = payment
         access.save(update_fields=['payment'])
-        from .supabase_sync import save_payment_to_supabase
-        save_payment_to_supabase(payment)
         messages.success(request, 'Case study added to your library.')
     else:
         messages.info(request, 'You already have access to this case study.')
@@ -746,8 +694,6 @@ def profile_support(request):
             support_form = SupportForm()
             if profile_form.is_valid():
                 profile_form.save()
-                from .supabase_sync import save_user_to_supabase
-                save_user_to_supabase(request.user)
                 messages.success(request, 'Profile updated.')
                 return redirect('website:profile_support')
         elif 'send_support' in request.POST:
@@ -756,14 +702,12 @@ def profile_support(request):
             if support_form.is_valid():
                 subject = support_form.cleaned_data.get('subject') or 'Support request from dashboard'
                 message = support_form.cleaned_data['message']
-                inquiry = Inquiry.objects.create(
+                Inquiry.objects.create(
                     name=request.user.get_full_name() or request.user.email,
                     email=request.user.email,
                     subject=subject,
                     message=message,
                 )
-                from .supabase_sync import save_inquiry_to_supabase
-                save_inquiry_to_supabase(inquiry)
                 messages.success(request, 'Your message has been sent. We will get back to you.')
                 return redirect('website:profile_support')
     else:
@@ -779,15 +723,7 @@ def profile_support(request):
 @login_required
 @admin_required
 def admin_dashboard(request):
-    """Admin dashboard: stats and content — all counts from Supabase."""
-    from .supabase_sync import (
-        fetch_mcq_questions_from_supabase,
-        fetch_case_studies_from_supabase,
-        fetch_books_slides_from_supabase,
-        fetch_inquiries_from_supabase,
-        _get,
-    )
-    # ── Visits (Django SQLite — lightweight) ──────────────────────────────
+    """Admin dashboard: stats and content — all from Django/SQLite."""
     from .models import Visit
     try:
         since = timezone.now() - timedelta(hours=24)
@@ -795,30 +731,18 @@ def admin_dashboard(request):
     except Exception:
         visits_24h = 0
 
-    # ── All counts from Supabase ──────────────────────────────────────────
-    all_questions, _ = fetch_mcq_questions_from_supabase(order='created_at.desc')
-    question_count = len(all_questions)
+    question_count = MCQQuestion.objects.count()
+    case_study_count = CaseStudy.objects.count()
+    book_count = BookOrSlide.objects.count()
+    payment_count = Payment.objects.count()
+    inquiry_count = Inquiry.objects.count()
+    user_count = User.objects.count()
 
-    case_studies, _ = fetch_case_studies_from_supabase()
-    case_study_count = len(case_studies)
-
-    books_slides, _ = fetch_books_slides_from_supabase()
-    book_count = len(books_slides)
-
-    payments, _ = _get('payments', order='created_at.desc')
-    payment_count = len(payments)
-
-    inquiries, _ = fetch_inquiries_from_supabase()
-    inquiry_count = len(inquiries)
-
-    app_users, _ = _get('app_users', order='created_at.desc')
-    user_count = len(app_users)
-
-    # ── Question breakdown by programme & paper ───────────────────────────
+    # Question breakdown by programme & paper
     from collections import Counter
     count_map = Counter(
-        (q.get('program') or '', q.get('paper') or '')
-        for q in all_questions
+        (q.program or '', q.paper or '')
+        for q in MCQQuestion.objects.all()
     )
     question_breakdown = []
     for prog_code, papers in PAPER_CONFIG.items():
@@ -840,13 +764,20 @@ def admin_dashboard(request):
             'total': prog_total,
         })
 
-    # ── Recent users & payments (from Supabase) ───────────────────────────
-    recent_users = app_users[:10]
-    recent_payments = payments[:8]
+    recent_users_qs = User.objects.select_related('profile').order_by('-date_joined')[:10]
+    recent_users = [
+        {
+            'email': u.email or '—',
+            'full_name': u.get_full_name() or u.email or '—',
+            'created_at': u.date_joined,
+        }
+        for u in recent_users_qs
+    ]
+    recent_payments = list(Payment.objects.order_by('-created_at')[:8])
 
     context = {
-        'visits_24h': visits_24h + 100,
-        'user_count': 1000 + user_count,
+        'visits_24h': visits_24h,
+        'user_count': user_count,
         'question_count': question_count,
         'case_study_count': case_study_count,
         'book_count': book_count,
@@ -940,26 +871,25 @@ def admin_mcq_import_template(request):
 
 
 def _mcq_payload_from_row(row):
-    """Build Supabase MCQ payload dict from a row (JSON object or CSV row)."""
+    """Build MCQQuestion kwargs from a row (JSON object or CSV row)."""
     return {
         'question_text': (row.get('question_text') or '').strip(),
         'option_a': (row.get('option_a') or '').strip(),
         'option_b': (row.get('option_b') or '').strip(),
-        'option_c': (row.get('option_c') or '').strip() or None,
-        'option_d': (row.get('option_d') or '').strip() or None,
+        'option_c': (row.get('option_c') or '').strip() or '',
+        'option_d': (row.get('option_d') or '').strip() or '',
         'correct_answer': (row.get('correct_answer') or 'A').strip().upper()[:1] or 'A',
-        'answer_explanation': (row.get('answer_explanation') or '').strip() or None,
-        'topic': (row.get('topic') or '').strip() or None,
-        'program': (row.get('program') or '').strip() or None,
-        'paper': (row.get('paper') or '').strip() or None,
+        'answer_explanation': (row.get('answer_explanation') or '').strip() or '',
+        'topic': (row.get('topic') or '').strip() or '',
+        'program': (row.get('program') or '').strip() or '',
+        'paper': (row.get('paper') or '').strip() or '',
     }
 
 
 @login_required
 @admin_required
 def admin_add_question(request):
-    """Add questions to Supabase only (single or bulk JSON/CSV)."""
-    from .supabase_sync import add_mcq_to_supabase
+    """Add questions to Django/SQLite (single or bulk JSON/CSV)."""
     form = AdminMCQForm(request.POST or None)
     if request.method == 'POST':
         if request.POST.get('bulk_type') == 'json':
@@ -976,13 +906,15 @@ def admin_add_question(request):
                         if not isinstance(item, dict) or not (item.get('question_text') or '').strip():
                             continue
                         payload = _mcq_payload_from_row(item)
-                        _, err = add_mcq_to_supabase(payload)
-                        if err is None:
-                            created += 1
-                        else:
+                        if payload.get('correct_answer') not in ('A', 'B', 'C', 'D'):
                             failed += 1
-                            messages.warning(request, f'Supabase failed: {err}')
-                    msg = f'Imported {created} question(s) to Supabase.'
+                            continue
+                        try:
+                            MCQQuestion.objects.create(**payload)
+                            created += 1
+                        except Exception:
+                            failed += 1
+                    msg = f'Imported {created} question(s).'
                     if failed:
                         msg += f' {failed} failed.'
                     messages.success(request, msg)
@@ -1009,13 +941,15 @@ def admin_add_question(request):
                         if not (row.get('question_text') or '').strip():
                             continue
                         payload = _mcq_payload_from_row(row)
-                        _, err = add_mcq_to_supabase(payload)
-                        if err is None:
-                            created += 1
-                        else:
+                        if payload.get('correct_answer') not in ('A', 'B', 'C', 'D'):
                             failed += 1
-                            messages.warning(request, f'Supabase failed: {err}')
-                    msg = f'Imported {created} question(s) to Supabase.'
+                            continue
+                        try:
+                            MCQQuestion.objects.create(**payload)
+                            created += 1
+                        except Exception:
+                            failed += 1
+                    msg = f'Imported {created} question(s).'
                     if failed:
                         msg += f' {failed} failed.'
                     messages.success(request, msg)
@@ -1024,23 +958,8 @@ def admin_add_question(request):
                     messages.error(request, str(e))
             return render(request, 'website/admin_add_question.html', {'form': form, 'bulk_csv_text': raw})
         if form.is_valid():
-            payload = {
-                'question_text': form.cleaned_data.get('question_text') or '',
-                'option_a': form.cleaned_data.get('option_a') or '',
-                'option_b': form.cleaned_data.get('option_b') or '',
-                'option_c': form.cleaned_data.get('option_c') or '',
-                'option_d': form.cleaned_data.get('option_d') or '',
-                'correct_answer': form.cleaned_data.get('correct_answer') or 'A',
-                'answer_explanation': form.cleaned_data.get('answer_explanation') or '',
-                'program': form.cleaned_data.get('program') or '',
-                'paper': form.cleaned_data.get('paper') or '',
-                'topic': form.cleaned_data.get('topic') or '',
-            }
-            _, err = add_mcq_to_supabase(payload)
-            if err is None:
-                messages.success(request, 'Question saved to Supabase successfully.')
-            else:
-                messages.warning(request, f'Save failed: {err}')
+            form.save()
+            messages.success(request, 'Question saved successfully.')
             return redirect('website:admin_questions_list')
     return render(request, 'website/admin_add_question.html', {'form': form})
 
@@ -1048,12 +967,8 @@ def admin_add_question(request):
 @login_required
 @admin_required
 def admin_questions_list(request):
-    """List all MCQ questions from Supabase with links to add, edit, delete."""
-    from .supabase_sync import fetch_mcq_questions_from_supabase
-    questions_list, err = fetch_mcq_questions_from_supabase(order='created_at.desc')
-    if err:
-        messages.warning(request, f'Could not load questions from Supabase: {err}')
-        questions_list = []
+    """List all MCQ questions from Django/SQLite with links to add, edit, delete."""
+    questions_list = MCQQuestion.objects.all().order_by('-created_at')
     paginator = Paginator(questions_list, 100)
     page = request.GET.get('page') or 1
     try:
@@ -1073,37 +988,12 @@ def admin_questions_list(request):
 @login_required
 @admin_required
 def admin_question_form(request, pk=None):
-    """Add (pk=None) or edit (pk=Supabase id) an MCQ question — read/write Supabase only."""
-    from .supabase_sync import fetch_mcq_question_by_id_supabase, add_mcq_to_supabase, update_mcq_in_supabase
-    question = None
-    if pk:
-        question, _ = fetch_mcq_question_by_id_supabase(pk)
-        if not question:
-            messages.error(request, 'Question not found.')
-            return redirect('website:admin_questions_list')
-    form = AdminMCQForm(request.POST or None, instance=None, initial=question)
+    """Add (pk=None) or edit (pk=Django id) an MCQ question — Django/SQLite only."""
+    question = get_object_or_404(MCQQuestion, pk=pk) if pk else None
+    form = AdminMCQForm(request.POST or None, instance=question)
     if request.method == 'POST' and form.is_valid():
-        payload = {
-            'question_text': form.cleaned_data.get('question_text') or '',
-            'option_a': form.cleaned_data.get('option_a') or '',
-            'option_b': form.cleaned_data.get('option_b') or '',
-            'option_c': form.cleaned_data.get('option_c') or '',
-            'option_d': form.cleaned_data.get('option_d') or '',
-            'correct_answer': form.cleaned_data.get('correct_answer') or 'A',
-            'answer_explanation': form.cleaned_data.get('answer_explanation') or '',
-            'program': form.cleaned_data.get('program') or '',
-            'paper': form.cleaned_data.get('paper') or '',
-            'topic': form.cleaned_data.get('topic') or '',
-        }
-        if pk:
-            ok, err = update_mcq_in_supabase(pk, payload)
-        else:
-            _, err = add_mcq_to_supabase(payload)
-            ok = err is None
-        if ok:
-            messages.success(request, 'Question saved to Supabase successfully.')
-        else:
-            messages.warning(request, f'Save failed: {err}')
+        form.save()
+        messages.success(request, 'Question saved successfully.')
         return redirect('website:admin_questions_list')
     return render(request, 'website/admin_question_form.html', {'form': form, 'question': question})
 
@@ -1111,18 +1001,11 @@ def admin_question_form(request, pk=None):
 @login_required
 @admin_required
 def admin_question_delete(request, pk):
-    """Confirm and delete an MCQ question from Supabase."""
-    from .supabase_sync import fetch_mcq_question_by_id_supabase, delete_mcq_from_supabase
-    question, err = fetch_mcq_question_by_id_supabase(pk)
-    if not question:
-        messages.error(request, err or 'Question not found.')
-        return redirect('website:admin_questions_list')
+    """Confirm and delete an MCQ question from Django/SQLite."""
+    question = get_object_or_404(MCQQuestion, pk=pk)
     if request.method == 'POST':
-        ok, err = delete_mcq_from_supabase(pk)
-        if ok:
-            messages.success(request, 'Question deleted.')
-        else:
-            messages.warning(request, f'Delete failed: {err}')
+        question.delete()
+        messages.success(request, 'Question deleted.')
         return redirect('website:admin_questions_list')
     return render(request, 'website/admin_question_confirm_delete.html', {'question': question})
 
@@ -1130,87 +1013,73 @@ def admin_question_delete(request, pk):
 @login_required
 @admin_required
 def admin_add_case_study(request):
-    from .supabase_sync import save_case_study_to_supabase, upload_case_study_file
+    from django.core.files.storage import default_storage
     form = AdminCaseStudyForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         obj = form.save()
         if request.FILES.get('upload_file'):
-            ok, result = upload_case_study_file(request.FILES['upload_file'])
-            if ok:
-                obj.file_url = result
-                obj.save()
-            else:
-                messages.warning(request, 'Case study saved but file upload failed: {}'.format(result))
-        ok, err = save_case_study_to_supabase(obj)
-        if ok:
-            messages.success(request, 'Case study saved to Supabase successfully.')
-        else:
-            messages.warning(request, 'Case study saved locally but Supabase save failed: {}'.format(err))
+            f = request.FILES['upload_file']
+            path = default_storage.save(f'case_studies/{f.name}', f)
+            obj.file_url = request.build_absolute_uri(settings.MEDIA_URL + path)
+            obj.save(update_fields=['file_url'])
+        messages.success(request, 'Case study saved successfully.')
         return redirect('website:admin_add_case_study')
-    bucket = getattr(settings, 'SUPABASE_STORAGE_BUCKET_CASE_STUDIES', 'case-studies')
-    return render(request, 'website/admin_add_case_study.html', {'form': form, 'case_study_bucket_name': bucket})
+    return render(request, 'website/admin_add_case_study.html', {'form': form})
 
 
 @login_required
 @admin_required
 def admin_add_books_slides(request):
-    from .supabase_sync import save_book_slide_to_supabase, upload_book_slide_file
+    from django.core.files.storage import default_storage
     form = AdminBookSlideForm(request.POST or None, request.FILES or None)
     if request.method == 'POST' and form.is_valid():
         obj = form.save()
         if request.FILES.get('upload_file'):
-            ok, result = upload_book_slide_file(request.FILES['upload_file'])
-            if ok:
-                obj.file_url = result
-                obj.save()
-            else:
-                messages.warning(request, 'Book/slide saved but file upload failed: {}'.format(result))
-        ok, err = save_book_slide_to_supabase(obj)
-        if ok:
-            messages.success(request, 'Book/slide saved to Supabase successfully.')
-        else:
-            messages.warning(request, 'Book/slide saved locally but Supabase save failed: {}'.format(err))
+            f = request.FILES['upload_file']
+            path = default_storage.save(f'books_slides/{f.name}', f)
+            obj.file_url = request.build_absolute_uri(settings.MEDIA_URL + path)
+            obj.save(update_fields=['file_url'])
+        messages.success(request, 'Book/slide saved successfully.')
         return redirect('website:admin_add_books_slides')
-    bucket = getattr(settings, 'SUPABASE_STORAGE_BUCKET_BOOKS_SLIDES', 'book-slide')
-    return render(request, 'website/admin_add_books_slides.html', {'form': form, 'books_slides_bucket_name': bucket})
+    return render(request, 'website/admin_add_books_slides.html', {'form': form})
 
 
 @login_required
 @admin_required
 def admin_content_supabase(request):
-    """Admin page: Case studies and Books & slides from Supabase, in tabs."""
-    from .supabase_sync import fetch_case_studies_from_supabase, fetch_books_slides_from_supabase
-    case_studies, case_studies_err = fetch_case_studies_from_supabase()
-    books_slides, books_slides_err = fetch_books_slides_from_supabase()
+    """Admin page: Case studies and Books & slides from Django/SQLite, in tabs."""
+    case_studies = CaseStudy.objects.all().order_by('-created_at')
+    books_slides = BookOrSlide.objects.all().order_by('-created_at')
     return render(request, 'website/admin_content_supabase.html', {
         'case_studies': case_studies,
-        'case_studies_error': case_studies_err,
+        'case_studies_error': None,
         'books_slides': books_slides,
-        'books_slides_error': books_slides_err,
+        'books_slides_error': None,
     })
 
 
 @login_required
 @admin_required
 def admin_all_users(request):
-    from .supabase_sync import _get
-    users, err = _get('app_users', order='created_at.desc')
-    if err:
-        messages.warning(request, f'Could not load users from Supabase: {err}')
-        users = []
+    users_qs = User.objects.select_related('profile').order_by('-date_joined')
+    users = [
+        {
+            'email': u.email or '—',
+            'full_name': u.get_full_name() or u.email or '—',
+            'program': getattr(getattr(u, 'profile', None), 'program', '') or '—',
+            'created_at': u.date_joined,
+        }
+        for u in users_qs
+    ]
     return render(request, 'website/admin_all_users.html', {'users': users})
 
 
 @login_required
 @admin_required
 def admin_payments(request):
-    """List all payments from Supabase."""
-    from .supabase_sync import _get
-    payments, err = _get('payments', order='created_at.desc')
-    if err:
-        messages.warning(request, f'Could not load payments from Supabase: {err}')
-        payments = []
-    return render(request, 'website/admin_payments.html', {'payments': payments[:100]})
+    """List all payments from Django/SQLite."""
+    payments = Payment.objects.all().order_by('-created_at')[:100]
+    return render(request, 'website/admin_payments.html', {'payments': payments})
 
 
 def _parse_iso_date(iso_str):
@@ -1227,79 +1096,15 @@ def _parse_iso_date(iso_str):
 @login_required
 @admin_required
 def admin_inquiries_list(request):
-    """Display contact form submissions from Supabase."""
-    from .supabase_sync import fetch_inquiries_from_supabase
-    inquiries_raw, err = fetch_inquiries_from_supabase()
-    inquiries = []
-    if err:
-        messages.warning(request, f'Could not load inquiries from Supabase: {err}')
-    else:
-        for i in inquiries_raw:
-            created = _parse_iso_date(i.get('created_at'))
-            replied = _parse_iso_date(i.get('replied_at'))
-            inquiries.append({
-                'id': i.get('id'),
-                'name': i.get('name') or '—',
-                'email': i.get('email') or '—',
-                'subject': i.get('subject') or '—',
-                'message': i.get('message') or '—',
-                'created_at': created,
-                'replied_at': replied,
-            })
+    """Display contact form submissions from Django/SQLite."""
+    inquiries = Inquiry.objects.all().order_by('-created_at')
     return render(request, 'website/admin_inquiries_list.html', {'inquiries': inquiries})
 
 
 @login_required
 @admin_required
-def admin_inquiry_reply_supabase(request, supabase_id):
-    """Reply to an inquiry loaded from Supabase; send email and set replied_at in Supabase."""
-    from .supabase_sync import fetch_inquiry_by_id_supabase, update_inquiry_replied_at_supabase
-    inquiry_dict, err = fetch_inquiry_by_id_supabase(supabase_id)
-    if err or not inquiry_dict:
-        messages.error(request, err or 'Inquiry not found.')
-        return redirect('website:admin_inquiries_list')
-    # Build a simple object so the existing reply template can use inquiry.name, inquiry.email, etc.
-    class InquiryObj:
-        pass
-    inquiry = InquiryObj()
-    inquiry.pk = supabase_id
-    inquiry.name = inquiry_dict.get('name') or ''
-    inquiry.email = inquiry_dict.get('email') or ''
-    inquiry.subject = inquiry_dict.get('subject') or ''
-    inquiry.message = inquiry_dict.get('message') or ''
-    inquiry.created_at = _parse_iso_date(inquiry_dict.get('created_at'))
-    inquiry.replied_at = _parse_iso_date(inquiry_dict.get('replied_at'))
-    if request.method == 'POST':
-        reply_message = request.POST.get('reply_message', '').strip()
-        if not reply_message:
-            messages.error(request, 'Please enter a reply message.')
-            return render(request, 'website/admin_inquiry_reply.html', {'inquiry': inquiry})
-        try:
-            html = render_to_string('email/inquiry_reply_to_user.html', {
-                'name': inquiry.name,
-                'reply_message': reply_message,
-            })
-            send_mail(
-                subject='Re: Your message to NurseHour',
-                message=reply_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[inquiry.email],
-                fail_silently=False,
-                html_message=html,
-            )
-            update_inquiry_replied_at_supabase(supabase_id)
-            messages.success(request, f'Reply sent to {inquiry.email}.')
-        except Exception as e:
-            messages.error(request, f'Could not send email: {e}')
-            return render(request, 'website/admin_inquiry_reply.html', {'inquiry': inquiry})
-        return redirect('website:admin_inquiries_list')
-    return render(request, 'website/admin_inquiry_reply.html', {'inquiry': inquiry})
-
-
-@login_required
-@admin_required
 def admin_inquiry_reply(request, pk):
-    """Legacy: reply to inquiry by Django pk (if any). Prefer admin_inquiry_reply_supabase for list from Supabase."""
+    """Reply to an inquiry by Django pk; send email and set replied_at."""
     inquiry = get_object_or_404(Inquiry, pk=pk)
     if request.method == 'POST':
         reply_message = request.POST.get('reply_message', '').strip()
