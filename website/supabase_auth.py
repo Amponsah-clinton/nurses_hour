@@ -51,6 +51,7 @@ def sign_in_supabase(email, password):
     """
     Sign in an existing user via Supabase Auth (email + password).
     Returns (user_obj, None) or (None, error_message).
+    error_message is the real Supabase message when possible (e.g. "Email not confirmed").
     """
     try:
         client = _client()
@@ -60,12 +61,15 @@ def sign_in_supabase(email, password):
         })
         user = getattr(resp, 'user', None)
         if user is None:
-            return None, 'Invalid email or password.'
+            return None, getattr(resp, 'message', None) or 'Invalid email or password.'
         return user, None
     except Exception as e:
         msg = str(e)
+        # Surface real message for "Email not confirmed" etc.
+        if 'email_not_confirmed' in msg.lower() or 'not confirmed' in msg.lower():
+            return None, 'Email not confirmed. Check your inbox or use Forgot password to reset.'
         if 'invalid' in msg.lower() or 'credentials' in msg.lower() or 'password' in msg.lower():
-            return None, 'Invalid email or password.'
+            return None, msg if len(msg) < 120 else 'Invalid email or password.'
         return None, msg or 'Sign in failed — please try again.'
 
 

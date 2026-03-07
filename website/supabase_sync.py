@@ -8,6 +8,7 @@ feedback instead of silently ignoring errors.
 import json
 import urllib.request
 import urllib.error
+import urllib.parse
 import uuid
 from django.conf import settings
 
@@ -80,7 +81,8 @@ def _get(table, order='created_at.desc', filters=None):
     if filters:
         for k, v in filters.items():
             if v is not None and v != '':
-                api = api + '&{}={}'.format(k, 'eq.' + str(v))
+                # URL-encode value so email with @ etc. works
+                api = api + '&{}={}'.format(k, 'eq.' + urllib.parse.quote(str(v), safe=''))
     req = urllib.request.Request(
         api,
         headers={
@@ -178,6 +180,16 @@ def get_app_user_email_by_phone(phone):
     if err or not rows:
         return None, err or 'Not found'
     return (rows[0].get('email') or None), None
+
+
+def get_app_user_by_email(email):
+    """Get one app_users row by email. Returns (dict or None, error_msg)."""
+    if not (email or '').strip():
+        return None, 'No email'
+    rows, err = _get('app_users', order=None, filters={'email': str(email).strip().lower()})
+    if err or not rows:
+        return None, err or 'Not found'
+    return rows[0], None
 
 
 def _delete(table, row_id):
